@@ -1309,7 +1309,7 @@ function filtersToApiBody(filters: FilterState, reportType: string) {
     taskId: filters.taskId ?? null,
     billable: filters.billable ?? null,
     description: filters.descriptionSearch || null,
-    groupBy: "project" as const,
+    groupBy: "Project" as const,
     preset: filters.preset,
     showAmounts: filters.showAmounts,
     // NOTE: roundUp is intentionally not included — shared reports always show original times
