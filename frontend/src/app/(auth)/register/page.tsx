@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { ApiError } from "@/lib/api/client";
+import { AlertTriangle } from "lucide-react";
 
 type FormValues = {
   firstName: string;
@@ -111,6 +112,16 @@ function RegisterPageContent() {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4 py-4">
+          {/* Development warning */}
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-300/30 bg-amber-50 px-3 py-2.5 dark:border-amber-500/20 dark:bg-amber-950/30">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-[12px] leading-relaxed text-amber-800 dark:text-amber-200/80">
+              TempoBase is in <span className="font-semibold">active development</span>.
+              Your data may be reset at any time without notice. Export or back up
+              anything you want to keep.
+            </p>
+          </div>
+
           {serverError && (
             <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {serverError}

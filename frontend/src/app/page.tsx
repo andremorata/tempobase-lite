@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Shield,
   Moon,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ─── Static Data ──────────────────────────────────────────────────────────── */
@@ -76,6 +77,44 @@ const highlights = [
 export default function Home() {
   return (
     <div className="min-h-screen overflow-x-hidden">
+      {/* ━━━ Development Warning Banner ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div
+        className="relative z-[60] overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, oklch(0.35 0.08 85), oklch(0.28 0.06 70))",
+          borderBottom: "1px solid oklch(0.55 0.14 85 / 0.25)",
+        }}
+      >
+        {/* Diagonal stripes texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 8px,
+              oklch(1 0 0) 8px,
+              oklch(1 0 0) 10px
+            )`,
+          }}
+        />
+        <div className="relative mx-auto flex max-w-7xl items-center gap-3 px-5 py-2.5 sm:px-8">
+          <div
+            className="flex size-5 shrink-0 items-center justify-center rounded"
+            style={{ background: "oklch(0.75 0.16 85 / 0.2)" }}
+          >
+            <AlertTriangle className="size-3" style={{ color: "oklch(0.82 0.16 85)" }} />
+          </div>
+          <p className="text-[12px] leading-relaxed sm:text-[13px]" style={{ color: "oklch(0.85 0.05 85)" }}>
+            <span className="font-semibold" style={{ color: "oklch(0.92 0.1 85)" }}>
+              Early access &mdash;
+            </span>{" "}
+            This app is under active development and subject to changes at any time.
+            Data may be wiped without notice. Please keep backups of any important information.
+          </p>
+        </div>
+      </div>
+
       {/* ━━━ Navigation ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <nav className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-white/[0.06] px-5 py-3 backdrop-blur-2xl sm:px-8"
            style={{ background: "oklch(0.08 0.005 264 / 0.85)" }}>
