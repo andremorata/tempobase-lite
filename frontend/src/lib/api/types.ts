@@ -163,6 +163,8 @@ export interface UpdateTagRequest {
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
 export type SummaryGroupBy = "Project" | "Client" | "Task";
+export type PersistedReportGroupBy = "project" | "client" | "user" | "task" | "tag";
+export type ReportGroupByInput = SummaryGroupBy | PersistedReportGroupBy;
 
 export interface ReportFilters {
   from?: string | null;
@@ -570,7 +572,7 @@ export interface SavedReportDto {
   tagId?: string | null;
   billable?: boolean | null;
   description?: string | null;
-  groupBy: SummaryGroupBy;
+  groupBy: PersistedReportGroupBy;
   preset?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -587,7 +589,7 @@ export interface CreateSavedReportRequest {
   tagId?: string | null;
   billable?: boolean | null;
   description?: string | null;
-  groupBy?: SummaryGroupBy;
+  groupBy?: PersistedReportGroupBy;
   preset?: string | null;
 }
 
@@ -602,7 +604,7 @@ export interface UpdateSavedReportRequest {
   tagId?: string | null;
   billable?: boolean | null;
   description?: string | null;
-  groupBy?: SummaryGroupBy;
+  groupBy?: PersistedReportGroupBy;
   preset?: string | null;
 }
 
@@ -617,7 +619,7 @@ export interface CreateSharedReportRequest {
   tagId?: string | null;
   billable?: boolean | null;
   description?: string | null;
-  groupBy?: SummaryGroupBy;
+  groupBy?: PersistedReportGroupBy;
   expiresAt?: string | null;
   showAmounts?: boolean;
 }

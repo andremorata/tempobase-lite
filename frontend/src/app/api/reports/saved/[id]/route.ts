@@ -9,6 +9,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+
+const reportGroupBySchema = z.enum([
+  "project",
+  "client",
+  "user",
+  "task",
+  "tag",
+  "Project",
+  "Client",
+  "Task",
+]);
 
 const UpdateSavedReportSchema = z.object({
   name: z.string().min(1).max(200),
@@ -21,7 +33,7 @@ const UpdateSavedReportSchema = z.object({
   tagId: z.string().uuid().nullish(),
   billable: z.boolean().nullish(),
   description: z.string().nullish(),
-  groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
+  groupBy: reportGroupBySchema.nullish(),
   preset: z.string().nullish(),
 });
 
@@ -36,6 +48,7 @@ export async function PUT(
 
     const body = await request.json();
     const validated = UpdateSavedReportSchema.parse(body);
+    const groupBy = toPersistedReportGroupBy(validated.groupBy);
 
     // Check if report exists
     const existingReport = await prisma.savedReport.findUnique({
@@ -60,7 +73,7 @@ export async function PUT(
       tagId: validated.tagId,
       billable: validated.billable,
       description: validated.description,
-      groupBy: validated.groupBy || "project",
+      groupBy,
       preset: validated.preset ?? "custom",
     });
 
@@ -102,7 +115,7 @@ export async function PUT(
       tagId: filters.tagId || null,
       billable: filters.billable ?? null,
       description: filters.description || null,
-      groupBy: filters.groupBy || "project",
+      groupBy: toPersistedReportGroupBy(filters.groupBy),
       preset: filters.preset || "custom",
       createdAt: report.createdAt,
       updatedAt: report.updatedAt || report.createdAt,

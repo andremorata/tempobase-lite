@@ -38,6 +38,8 @@
 
 ## Evidence Log
 
+- 2026-03-25: Reports save/share compatibility fix completed. Saved/shared report APIs now normalize legacy title-case `groupBy` payloads (`Project`, `Client`, `Task`) to persisted lowercase values, and the summary endpoint now accepts either form. Added frontend regression coverage for the normalization helpers.
+
 - 2026-03-24: Legacy backend and Azure infrastructure fully removed. Repository cleaned to single-stack Next.js application. All docs, specs, README, and AGENTS.md updated to remove legacy references. `backend/`, `infra/`, `.github/workflows/`, and `docs/12-backend.md` deleted.
 
 - 2026-03-24: Frontend Auth.js client cutover completed. Added a root `SessionProvider` composition layer, migrated `useAuth()` internals from localStorage/JWT handling to Auth.js credentials sign-in and sign-out flows, switched the shared API client and import uploads to same-origin cookie-based requests, and corrected invite registration to use `/api/auth/register-invite`. Validation: no diagnostics in touched files, targeted auth regression tests were added for login, registration, and `AuthGuard` behavior, `pnpm --dir frontend test` passed 73/73, and `pnpm --dir frontend run build` succeeded.

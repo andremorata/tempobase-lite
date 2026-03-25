@@ -9,6 +9,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { toSummaryReportGroupBy } from "@/lib/reports/group-by";
+
+const summaryGroupBySchema = z.enum(["Project", "Client", "Task", "project", "client", "task"]);
 
 const QuerySchema = z.object({
   from: z.string().optional(),
@@ -19,7 +22,7 @@ const QuerySchema = z.object({
   tagId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
   billable: z.enum(["true", "false"]).optional(),
-  groupBy: z.enum(["Project", "Client", "Task"]).default("Project"),
+  groupBy: summaryGroupBySchema.default("Project"),
 });
 
 export async function GET(request: NextRequest) {
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = QuerySchema.parse(searchParams);
+    const groupBy = toSummaryReportGroupBy(query.groupBy);
 
     const where: any = {
       accountId,
@@ -114,7 +118,7 @@ export async function GET(request: NextRequest) {
       let groupName = "";
       let color: string | null = null;
 
-      switch (query.groupBy) {
+      switch (groupBy) {
         case "Project":
           groupKey = entry.projectId || "no-project";
           groupName = entry.project?.name || "No Project";

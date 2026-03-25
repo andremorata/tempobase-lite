@@ -9,6 +9,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+
+const reportGroupBySchema = z.enum([
+  "project",
+  "client",
+  "user",
+  "task",
+  "tag",
+  "Project",
+  "Client",
+  "Task",
+]);
 
 const CreateSavedReportSchema = z.object({
   name: z.string().min(1).max(200),
@@ -21,7 +33,7 @@ const CreateSavedReportSchema = z.object({
   tagId: z.string().uuid().nullish(),
   billable: z.boolean().nullish(),
   description: z.string().nullish(),
-  groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
+  groupBy: reportGroupBySchema.nullish(),
   preset: z.string().nullish(),
 });
 
@@ -68,7 +80,7 @@ export async function GET(request: NextRequest) {
         tagId: filters.tagId || null,
         billable: filters.billable ?? null,
         description: filters.description || null,
-        groupBy: filters.groupBy || "project",
+        groupBy: toPersistedReportGroupBy(filters.groupBy),
         preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
@@ -93,6 +105,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = CreateSavedReportSchema.parse(body);
+    const groupBy = toPersistedReportGroupBy(validated.groupBy);
 
     // Serialize filters to JSON
     const filtersJson = JSON.stringify({
@@ -104,7 +117,7 @@ export async function POST(request: NextRequest) {
       tagId: validated.tagId,
       billable: validated.billable,
       description: validated.description,
-      groupBy: validated.groupBy || "project",
+      groupBy,
       preset: validated.preset ?? "custom",
     });
 
@@ -147,7 +160,7 @@ export async function POST(request: NextRequest) {
         tagId: filters.tagId || null,
         billable: filters.billable ?? null,
         description: filters.description || null,
-        groupBy: filters.groupBy || "project",
+        groupBy: toPersistedReportGroupBy(filters.groupBy),
         preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,

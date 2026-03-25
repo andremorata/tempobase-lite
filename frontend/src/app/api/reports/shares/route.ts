@@ -10,6 +10,18 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+
+const reportGroupBySchema = z.enum([
+  "project",
+  "client",
+  "user",
+  "task",
+  "tag",
+  "Project",
+  "Client",
+  "Task",
+]);
 
 const CreateSharedReportSchema = z.object({
   name: z.string().min(1).max(160),
@@ -22,7 +34,7 @@ const CreateSharedReportSchema = z.object({
   tagId: z.string().uuid().nullish(),
   billable: z.boolean().nullish(),
   description: z.string().nullish(),
-  groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
+  groupBy: reportGroupBySchema.nullish(),
   showAmounts: z.boolean().default(false),
   expiresAt: z.string().nullish(),
 });
@@ -89,6 +101,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = CreateSharedReportSchema.parse(body);
+    const groupBy = toPersistedReportGroupBy(validated.groupBy);
 
     // Validate expiresAt if provided
     if (validated.expiresAt) {
@@ -119,7 +132,7 @@ export async function POST(request: NextRequest) {
       tagId: validated.tagId,
       billable: validated.billable,
       description: validated.description,
-      groupBy: validated.groupBy || "project",
+      groupBy,
       showAmounts: validated.showAmounts,
     });
 

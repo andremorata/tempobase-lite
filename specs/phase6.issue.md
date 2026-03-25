@@ -49,6 +49,7 @@ Deliver the report builder module with summary, detailed, and weekly report view
 - **CSV export**: Client-side `Blob` generation + `<a>` click download — no server roundtrip.
 - **Share**: `POST /api/reports/shares` now requires a user-defined share name, `GET /api/reports/shares` lists current account shares, `DELETE /api/reports/shares/{id}` removes them, and the reports page exposes copy/delete management for existing shared links.
 - **Sidebar**: Added "Reports" link with `BarChart2` icon to the Insights section.
+- **Compatibility note (2026-03-25)**: Saved/shared report payloads now accept both legacy title-case and normalized lowercase `groupBy` values, and persistence normalizes them to lowercase so older saved views continue updating successfully.
 
 ### Tests
 

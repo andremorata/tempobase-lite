@@ -60,6 +60,7 @@ import type {
   SummaryReportResponse,
   WeeklyReportResponse,
 } from "@/lib/api/types";
+import { toPersistedReportGroupBy, toSummaryReportGroupBy } from "@/lib/reports/group-by";
 
 describe("report response types", () => {
   it("SummaryReportResponse has correct shape with billing fields", () => {
@@ -162,11 +163,23 @@ describe("report response types", () => {
       reportType: "Weekly",
       from: "2026-03-01",
       to: "2026-03-31",
-      groupBy: "Project",
+      groupBy: "project",
     };
 
     expect(request.name).toBe("Weekly customer share");
     expect(request.reportType).toBe("Weekly");
+  });
+
+  it("normalizes legacy title-case values for saved and shared reports", () => {
+    expect(toPersistedReportGroupBy("Project")).toBe("project");
+    expect(toPersistedReportGroupBy("Client")).toBe("client");
+    expect(toPersistedReportGroupBy("Task")).toBe("task");
+  });
+
+  it("normalizes persisted values back to summary-safe values", () => {
+    expect(toSummaryReportGroupBy("project")).toBe("Project");
+    expect(toSummaryReportGroupBy("client")).toBe("Client");
+    expect(toSummaryReportGroupBy("tag")).toBe("Project");
   });
 });
 
