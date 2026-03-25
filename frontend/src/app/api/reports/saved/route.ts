@@ -13,15 +13,15 @@ import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/he
 const CreateSavedReportSchema = z.object({
   name: z.string().min(1).max(200),
   reportType: z.enum(["Summary", "Detailed", "Weekly"]),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  projectId: z.string().uuid().optional(),
-  clientId: z.string().uuid().optional(),
-  taskId: z.string().uuid().optional(),
-  tagId: z.string().uuid().optional(),
-  billable: z.boolean().optional(),
-  description: z.string().optional(),
-  groupBy: z.enum(["project", "client", "user", "task", "tag"]).optional(),
+  from: z.string().nullish(),
+  to: z.string().nullish(),
+  projectId: z.string().uuid().nullish(),
+  clientId: z.string().uuid().nullish(),
+  taskId: z.string().uuid().nullish(),
+  tagId: z.string().uuid().nullish(),
+  billable: z.boolean().nullish(),
+  description: z.string().nullish(),
+  groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
 });
 
 export async function GET(request: NextRequest) {
