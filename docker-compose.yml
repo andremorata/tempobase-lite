@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tempobase-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: tempobase
+    ports:
+      - "5434:5432"
+    volumes:
+      - tempobase_lite_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tempobase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        DATABASE_URL: postgresql://postgres:localdev@postgres:5432/tempobase
+        DIRECT_DATABASE_URL: postgresql://postgres:localdev@postgres:5432/tempobase
+        NEXTAUTH_URL: http://localhost:3000
+        NEXTAUTH_SECRET: change-me-in-production-use-openssl-rand-base64-32
+    container_name: tempobase-app
+    environment:
+      DATABASE_URL: "postgresql://postgres:localdev@postgres:5432/tempobase"
+      DIRECT_DATABASE_URL: "postgresql://postgres:localdev@postgres:5432/tempobase"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "change-me-in-production-use-openssl-rand-base64-32"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  tempobase_lite_postgres_data:

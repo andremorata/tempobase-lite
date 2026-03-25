@@ -1,0 +1,352 @@
+// TempoBase Lite - Prisma Schema
+// Mirrors the EF Core schema for Vercel + Neon deployment
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  Owner
+  Admin
+  Manager
+  Member
+  Viewer
+}
+
+enum ProjectStatus {
+  Active
+  Archived
+}
+
+enum BillingType {
+  Hourly
+  Fixed
+  NonBillable
+}
+
+// ─── Tenancy Models ───────────────────────────────────────────────────────────
+
+model Account {
+  id                   String         @id @default(uuid()) @db.Uuid
+  name                 String         @db.VarChar(200)
+  slug                 String         @unique @db.VarChar(100)
+  timezone             String         @default("UTC") @db.VarChar(100)
+  currency             String         @default("USD") @db.VarChar(10)
+  auditRetentionDays   Int            @default(365) @map("audit_retention_days")
+
+  // Audit fields
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime?      @map("updated_at") @db.Timestamptz
+  createdBy            String?        @map("created_by") @db.Uuid
+  updatedBy            String?        @map("updated_by") @db.Uuid
+  isDeleted            Boolean        @default(false) @map("is_deleted")
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  users                User[]
+  invites              AccountInvite[]
+  clients              Client[]
+  projects             Project[]
+  tasks                ProjectTask[]
+  timeEntries          TimeEntry[]
+  tags                 Tag[]
+  savedReports         SavedReport[]
+  sharedReports        SharedReport[]
+  auditLogs            AuditLog[]
+
+  @@map("accounts")
+}
+
+model User {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  email                String    @db.VarChar(320)
+  firstName            String    @map("first_name") @db.VarChar(100)
+  lastName             String    @map("last_name") @db.VarChar(100)
+  passwordHash         String    @map("password_hash") @db.VarChar(500)
+  role                 UserRole
+  isActive             Boolean   @default(true) @map("is_active")
+  avatarUrl            String?   @map("avatar_url") @db.VarChar(1000)
+  dateFormat           String    @default("system") @map("date_format") @db.VarChar(20)
+  defaultProjectId     String?   @map("default_project_id") @db.Uuid
+  showAuditMetadata    Boolean   @default(true) @map("show_audit_metadata")
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  timeEntries          TimeEntry[]
+  savedReports         SavedReport[]
+  sharedReports        SharedReport[]
+  auditLogs            AuditLog[]
+
+  @@unique([accountId, id])
+  @@index([accountId])
+  @@map("domain_users")
+}
+
+model AccountInvite {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
+  token                String    @unique @db.VarChar(100)
+  expiresAt            DateTime  @map("expires_at") @db.Timestamptz
+  usedAt               DateTime? @map("used_at") @db.Timestamptz
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([token])
+  @@map("account_invites")
+}
+
+// ─── Time Tracking Models ─────────────────────────────────────────────────────
+
+model Client {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  name                 String    @db.VarChar(200)
+  email                String?   @db.VarChar(320)
+  phone                String?   @db.VarChar(50)
+  notes                String?   @db.Text
+  isArchived           Boolean   @default(false) @map("is_archived")
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  projects             Project[]
+
+  @@index([accountId])
+  @@map("clients")
+}
+
+model Project {
+  id                   String         @id @default(uuid()) @db.Uuid
+  accountId            String         @map("account_id") @db.Uuid
+  clientId             String?        @map("client_id") @db.Uuid
+  name                 String         @db.VarChar(200)
+  color                String         @default("#6366f1") @db.VarChar(20)
+  status               ProjectStatus  @default(Active)
+  billingType          BillingType    @default(Hourly) @map("billing_type")
+  hourlyRate           Decimal?       @map("hourly_rate") @db.Decimal(18, 4)
+  budgetHours          Decimal?       @map("budget_hours") @db.Decimal(18, 4)
+
+  // Audit fields
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime?      @map("updated_at") @db.Timestamptz
+  createdBy            String?        @map("created_by") @db.Uuid
+  updatedBy            String?        @map("updated_by") @db.Uuid
+  isDeleted            Boolean        @default(false) @map("is_deleted")
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account        @relation(fields: [accountId], references: [id])
+  client               Client?        @relation(fields: [clientId], references: [id])
+  tasks                ProjectTask[]
+  timeEntries          TimeEntry[]
+
+  @@index([accountId])
+  @@index([clientId])
+  @@map("projects")
+}
+
+model ProjectTask {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  projectId            String    @map("project_id") @db.Uuid
+  name                 String    @db.VarChar(200)
+  hourlyRate           Decimal?  @map("hourly_rate") @db.Decimal(18, 4)
+  isActive             Boolean   @default(true) @map("is_active")
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  project              Project   @relation(fields: [projectId], references: [id])
+  timeEntries          TimeEntry[]
+
+  @@index([accountId])
+  @@index([projectId])
+  @@map("project_tasks")
+}
+
+model TimeEntry {
+  id                   String         @id @default(uuid()) @db.Uuid
+  accountId            String         @map("account_id") @db.Uuid
+  userId               String         @map("user_id") @db.Uuid
+  projectId            String?        @map("project_id") @db.Uuid
+  taskId               String?        @map("task_id") @db.Uuid
+  description          String?        @db.VarChar(1000)
+  entryDate            DateTime       @map("entry_date") @db.Date
+  startTime            DateTime       @map("start_time") @db.Timestamptz
+  endTime              DateTime?      @map("end_time") @db.Timestamptz
+  duration             Int?           @db.Integer  // milliseconds
+  durationDecimal      Decimal?       @map("duration_decimal") @db.Decimal(18, 4)
+  isBillable           Boolean        @default(false) @map("is_billable")
+  isRunning            Boolean        @default(false) @map("is_running")
+
+  // Audit fields
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime?      @map("updated_at") @db.Timestamptz
+  createdBy            String?        @map("created_by") @db.Uuid
+  updatedBy            String?        @map("updated_by") @db.Uuid
+  isDeleted            Boolean        @default(false) @map("is_deleted")
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account        @relation(fields: [accountId], references: [id])
+  user                 User           @relation(fields: [userId], references: [id])
+  project              Project?       @relation(fields: [projectId], references: [id])
+  task                 ProjectTask?   @relation(fields: [taskId], references: [id])
+  tags                 TimeEntryTag[]
+
+  @@index([accountId, userId, entryDate])
+  @@index([accountId, isRunning])
+  @@map("time_entries")
+}
+
+model Tag {
+  id                   String         @id @default(uuid()) @db.Uuid
+  accountId            String         @map("account_id") @db.Uuid
+  name                 String         @db.VarChar(100)
+  color                String?        @db.VarChar(20)
+
+  // Audit fields
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime?      @map("updated_at") @db.Timestamptz
+  createdBy            String?        @map("created_by") @db.Uuid
+  updatedBy            String?        @map("updated_by") @db.Uuid
+  isDeleted            Boolean        @default(false) @map("is_deleted")
+  deletedAt            DateTime?      @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account        @relation(fields: [accountId], references: [id])
+  timeEntries          TimeEntryTag[]
+
+  @@index([accountId])
+  @@map("tags")
+}
+
+model TimeEntryTag {
+  timeEntryId          String    @map("time_entry_id") @db.Uuid
+  tagId                String    @map("tag_id") @db.Uuid
+
+  // Relations
+  timeEntry            TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  tag                  Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([timeEntryId, tagId])
+  @@map("time_entry_tags")
+}
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+model SavedReport {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
+  name                 String    @db.VarChar(200)
+  reportType           String    @map("report_type") @db.VarChar(50)
+  filtersJson          String    @map("filters_json") @db.Text
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  createdBy            User      @relation(fields: [createdByUserId], references: [id])
+
+  @@index([accountId])
+  @@map("saved_reports")
+}
+
+model SharedReport {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
+  name                 String    @db.VarChar(200)
+  token                String    @unique @db.VarChar(100)
+  reportType           String    @map("report_type") @db.VarChar(50)
+  filtersJson          String    @map("filters_json") @db.Text
+  expiresAt            DateTime? @map("expires_at") @db.Timestamptz
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  createdBy            User      @relation(fields: [createdByUserId], references: [id])
+
+  @@index([accountId])
+  @@index([token])
+  @@map("shared_reports")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id                   String    @id @default(uuid()) @db.Uuid
+  accountId            String    @map("account_id") @db.Uuid
+  actorUserId          String?   @map("actor_user_id") @db.Uuid
+  actorEmail           String    @default("") @map("actor_email") @db.VarChar(320)
+  actorName            String    @default("") @map("actor_name") @db.VarChar(200)
+  actorRole            String    @default("") @map("actor_role") @db.VarChar(20)
+  action               String    @db.VarChar(50)
+  entityType           String    @map("entity_type") @db.VarChar(100)
+  entityId             String    @map("entity_id") @db.VarChar(100)
+  summary              String    @db.VarChar(500)
+  changesJson          String?   @map("changes_json") @db.Text
+
+  // Audit fields
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @map("updated_at") @db.Timestamptz
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  isDeleted            Boolean   @default(false) @map("is_deleted")
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  account              Account   @relation(fields: [accountId], references: [id])
+  actor                User?     @relation(fields: [actorUserId], references: [id])
+
+  @@index([accountId])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
