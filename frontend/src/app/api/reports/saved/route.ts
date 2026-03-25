@@ -22,6 +22,7 @@ const CreateSavedReportSchema = z.object({
   billable: z.boolean().nullish(),
   description: z.string().nullish(),
   groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
+  preset: z.string().nullish(),
 });
 
 export async function GET(request: NextRequest) {
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
         billable: filters.billable ?? null,
         description: filters.description || null,
         groupBy: filters.groupBy || "project",
+        preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       };
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
       billable: validated.billable,
       description: validated.description,
       groupBy: validated.groupBy || "project",
+      preset: validated.preset ?? "custom",
     });
 
     const report = await prisma.savedReport.create({
@@ -145,6 +148,7 @@ export async function POST(request: NextRequest) {
         billable: filters.billable ?? null,
         description: filters.description || null,
         groupBy: filters.groupBy || "project",
+        preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       },

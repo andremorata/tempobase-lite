@@ -1310,20 +1310,23 @@ function filtersToApiBody(filters: FilterState, reportType: string) {
     billable: filters.billable ?? null,
     description: filters.descriptionSearch || null,
     groupBy: "project" as const,
+    preset: filters.preset,
     showAmounts: filters.showAmounts,
     // NOTE: roundUp is intentionally not included — shared reports always show original times
   };
 }
 
 function savedReportToFilters(r: SavedReportDto): FilterState {
+  const preset = (r.preset as DatePreset | null) ?? "custom";
+  const dates = preset !== "custom" ? presetDates(preset) : null;
   return {
-    from: r.from ?? null,
-    to: r.to ?? null,
+    from: dates?.from ?? r.from ?? null,
+    to: dates?.to ?? r.to ?? null,
     projectId: r.projectId ?? null,
     clientId: r.clientId ?? null,
     taskId: r.taskId ?? null,
     billable: r.billable ?? null,
-    preset: "custom",
+    preset,
     descriptionSearch: r.description ?? "",
     showAmounts: false,
     roundUp: false,

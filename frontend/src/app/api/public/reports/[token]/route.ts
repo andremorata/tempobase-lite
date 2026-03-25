@@ -205,7 +205,7 @@ export async function GET(
         };
       }
     } else {
-      // Summary report
+      // Summary report — return both aggregated totals and individual entries
       const entries = await prisma.timeEntry.findMany({
         where,
         include: {
@@ -215,90 +215,47 @@ export async function GET(
           task: {
             select: { name: true, hourlyRate: true },
           },
+          tags: {
+            include: { tag: { select: { name: true } } },
+          },
         },
+        orderBy: [{ entryDate: "desc" }, { startTime: "desc" }],
+        take: 500,
       });
 
-      const groupBy = filters.groupBy || "project";
-      const groups = new Map<string, any>();
-
-      for (const entry of entries) {
-        let groupKey = "";
-        let groupName = "";
-        let color: string | null = null;
-
-        switch (groupBy) {
-          case "project":
-            groupKey = entry.projectId || "no-project";
-            groupName = entry.project?.name || "No Project";
-            color = entry.project?.color || null;
-            break;
-          case "task":
-            groupKey = entry.taskId || "no-task";
-            groupName = entry.task?.name || "No Task";
-            break;
-          default:
-            groupKey = entry.projectId || "no-project";
-            groupName = entry.project?.name || "No Project";
-            color = entry.project?.color || null;
-        }
-
-        if (!groups.has(groupKey)) {
-          groups.set(groupKey, {
-            groupId: groupKey,
-            groupName,
-            color,
-            totalHours: 0,
-            billableHours: 0,
-            billedAmount: 0,
-            entryCount: 0,
-          });
-        }
-
-        const group = groups.get(groupKey);
+      const enrichedEntries = entries.map((entry) => {
         const hours = toNumber(entry.durationDecimal);
-        group.totalHours += hours;
-        group.entryCount += 1;
+        const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
+        const billedAmount = entry.isBillable && filters.showAmounts ? hours * rate : null;
+        return {
+          id: entry.id,
+          projectName: entry.project?.name || null,
+          projectColor: entry.project?.color || null,
+          taskName: entry.task?.name || null,
+          description: entry.description,
+          entryDate: entry.entryDate.toISOString().split("T")[0],
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          durationDecimal: hours,
+          isBillable: entry.isBillable,
+          billedAmount,
+          tagNames: entry.tags.map((tt) => tt.tag.name),
+        };
+      });
 
-        if (entry.isBillable) {
-          group.billableHours += hours;
-          if (filters.showAmounts) {
-            const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
-            group.billedAmount += hours * rate;
-          }
-        }
-      }
-
-      const summary = Array.from(groups.values())
-        .map((g) => ({
-          groupId: g.groupId,
-          groupName: g.groupName,
-          color: g.color,
-          totalHours: Number(g.totalHours.toFixed(2)),
-          billableHours: Number(g.billableHours.toFixed(2)),
-          billedAmount: filters.showAmounts ? Number(g.billedAmount.toFixed(2)) : null,
-          entryCount: g.entryCount,
-        }))
-        .sort((a, b) => b.totalHours - a.totalHours);
-
-      const totals = summary.reduce(
-        (acc, g) => ({
-          totalHours: acc.totalHours + g.totalHours,
-          billableHours: acc.billableHours + g.billableHours,
-          totalBilledAmount: acc.totalBilledAmount + (g.billedAmount || 0),
-          entryCount: acc.entryCount + g.entryCount,
-        }),
-        { totalHours: 0, billableHours: 0, totalBilledAmount: 0, entryCount: 0 }
-      );
+      const totalHours = enrichedEntries.reduce((s, e) => s + e.durationDecimal, 0);
+      const billableHours = enrichedEntries.filter((e) => e.isBillable).reduce((s, e) => s + e.durationDecimal, 0);
+      const totalBilledAmount = enrichedEntries.reduce((s, e) => s + (e.billedAmount ?? 0), 0);
 
       data = {
-        groupBy,
-        groups: summary,
-        totals: {
-          totalHours: Number(totals.totalHours.toFixed(2)),
-          billableHours: Number(totals.billableHours.toFixed(2)),
-          totalBilledAmount: filters.showAmounts ? Number(totals.totalBilledAmount.toFixed(2)) : null,
-          entryCount: totals.entryCount,
+        summary: {
+          groups: [],
+          totalHours: Number(totalHours.toFixed(2)),
+          billableHours: Number(billableHours.toFixed(2)),
+          totalBilledAmount: filters.showAmounts ? Number(totalBilledAmount.toFixed(2)) : 0,
+          totalEntries: enrichedEntries.length,
         },
+        entries: enrichedEntries,
       };
     }
 
