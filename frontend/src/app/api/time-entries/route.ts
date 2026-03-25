@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { withTenant } from "@/lib/db/extensions";
-import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUserId, getCurrentUser } from "@/lib/auth/helpers";
+import { createAuditLog } from "@/lib/audit/logger";
 import { mapTimeEntry } from "./mappers";
 
 // ─── List Time Entries ────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
     await requireAuth();
     const accountId = await getCurrentTenantId();
     const userId = await getCurrentUserId();
+    const user = await getCurrentUser();
 
     const body = await request.json();
     const validated = CreateTimeEntrySchema.parse(body);
@@ -184,6 +186,29 @@ export async function POST(request: NextRequest) {
       });
 
       return entryWithTags;
+    });
+
+    // Create audit log
+    await createAuditLog({
+      accountId,
+      actorUserId: userId,
+      actorEmail: user.email ?? "",
+      actorName: user.name ?? "",
+      actorRole: user.role ?? "User",
+      action: "create",
+      entityType: "TimeEntry",
+      entityId: entry.id,
+      summary: `Created time entry: ${durationHours.toFixed(2)}h on ${entryDate.toISOString().split("T")[0]}`,
+      changesJson: {
+        projectId: entry.projectId,
+        taskId: entry.taskId,
+        description: entry.description,
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+        duration: entry.duration,
+        durationDecimal: entry.durationDecimal,
+        isBillable: entry.isBillable,
+      },
     });
 
     return NextResponse.json(mapTimeEntry(entry), { status: 201 });

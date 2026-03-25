@@ -10,7 +10,7 @@ import {
 import { Clock, AlertCircle, ChevronDown, ChevronRight, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+const BASE_URL = "/api";
 
 const CHART_COLORS = [
   "#10b981", "#6366f1", "#f59e0b", "#ef4444", "#3b82f6",

@@ -585,7 +585,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
   return (
     <div className="space-y-5">
       {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${filters.showAmounts ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">
@@ -598,12 +598,14 @@ function SummaryTab({ filters }: { filters: FilterState }) {
             {summaryData ? fmtHours(summaryData.billableHours) : "—"}
           </p>
         </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Billed Amount</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
-            {summaryData ? fmtMoney(summaryData.totalBilledAmount) : "—"}
-          </p>
-        </div>
+        {filters.showAmounts && (
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Billed Amount</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
+              {summaryData ? fmtMoney(summaryData.totalBilledAmount) : "—"}
+            </p>
+          </div>
+        )}
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Entries</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">
@@ -1308,20 +1310,23 @@ function filtersToApiBody(filters: FilterState, reportType: string) {
     billable: filters.billable ?? null,
     description: filters.descriptionSearch || null,
     groupBy: "Project" as const,
+    preset: filters.preset,
     showAmounts: filters.showAmounts,
     // NOTE: roundUp is intentionally not included — shared reports always show original times
   };
 }
 
 function savedReportToFilters(r: SavedReportDto): FilterState {
+  const preset = (r.preset as DatePreset | null) ?? "custom";
+  const dates = preset !== "custom" ? presetDates(preset) : null;
   return {
-    from: r.from ?? null,
-    to: r.to ?? null,
+    from: dates?.from ?? r.from ?? null,
+    to: dates?.to ?? r.to ?? null,
     projectId: r.projectId ?? null,
     clientId: r.clientId ?? null,
     taskId: r.taskId ?? null,
     billable: r.billable ?? null,
-    preset: "custom",
+    preset,
     descriptionSearch: r.description ?? "",
     showAmounts: false,
     roundUp: false,

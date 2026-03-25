@@ -13,15 +13,16 @@ import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/he
 const CreateSavedReportSchema = z.object({
   name: z.string().min(1).max(200),
   reportType: z.enum(["Summary", "Detailed", "Weekly"]),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  projectId: z.string().uuid().optional(),
-  clientId: z.string().uuid().optional(),
-  taskId: z.string().uuid().optional(),
-  tagId: z.string().uuid().optional(),
-  billable: z.boolean().optional(),
-  description: z.string().optional(),
-  groupBy: z.enum(["project", "client", "user", "task", "tag"]).optional(),
+  from: z.string().nullish(),
+  to: z.string().nullish(),
+  projectId: z.string().uuid().nullish(),
+  clientId: z.string().uuid().nullish(),
+  taskId: z.string().uuid().nullish(),
+  tagId: z.string().uuid().nullish(),
+  billable: z.boolean().nullish(),
+  description: z.string().nullish(),
+  groupBy: z.enum(["project", "client", "user", "task", "tag"]).nullish(),
+  preset: z.string().nullish(),
 });
 
 export async function GET(request: NextRequest) {
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
         billable: filters.billable ?? null,
         description: filters.description || null,
         groupBy: filters.groupBy || "project",
+        preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       };
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
       billable: validated.billable,
       description: validated.description,
       groupBy: validated.groupBy || "project",
+      preset: validated.preset ?? "custom",
     });
 
     const report = await prisma.savedReport.create({
@@ -145,6 +148,7 @@ export async function POST(request: NextRequest) {
         billable: filters.billable ?? null,
         description: filters.description || null,
         groupBy: filters.groupBy || "project",
+        preset: filters.preset || "custom",
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       },

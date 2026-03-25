@@ -88,37 +88,37 @@
 
 .dark {
   /* ─── TempoBase Dark Theme · Dark Slate + Emerald ───────────────────────── */
-  --background: oklch(0.13 0.008 264);           /* deep slate */
+  --background: oklch(0.18 0.01 264);            /* lighter slate for better contrast */
   --foreground: oklch(0.95 0.004 240);
-  --card: oklch(0.178 0.009 264);
+  --card: oklch(0.22 0.012 264);                 /* lighter card background */
   --card-foreground: oklch(0.95 0.004 240);
-  --popover: oklch(0.178 0.009 264);
+  --popover: oklch(0.22 0.012 264);
   --popover-foreground: oklch(0.95 0.004 240);
   --primary: oklch(0.696 0.178 162);             /* same emerald in dark */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.225 0.01 264);
+  --secondary: oklch(0.27 0.012 264);            /* lighter secondary */
   --secondary-foreground: oklch(0.95 0.004 240);
-  --muted: oklch(0.225 0.01 264);
-  --muted-foreground: oklch(0.62 0.015 240);
-  --accent: oklch(0.218 0.022 162);              /* dark emerald tint */
+  --muted: oklch(0.27 0.012 264);                /* lighter muted */
+  --muted-foreground: oklch(0.65 0.015 240);     /* lighter muted foreground */
+  --accent: oklch(0.25 0.025 162);               /* lighter accent with emerald tint */
   --accent-foreground: oklch(0.765 0.15 163);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 18%);                  /* increased opacity from 10% to 18% */
+  --input: oklch(1 0 0 / 20%);                   /* increased opacity from 12% to 20% */
   --ring: oklch(0.696 0.178 162);
   --chart-1: oklch(0.696 0.178 162);
   --chart-2: oklch(0.765 0.15 163);
   --chart-3: oklch(0.533 0.135 162);
   --chart-4: oklch(0.62 0.08 200);
   --chart-5: oklch(0.41 0.04 250);
-  --sidebar: oklch(0.178 0.009 264);
+  --sidebar: oklch(0.22 0.012 264);              /* lighter sidebar */
   --sidebar-foreground: oklch(0.95 0.004 240);
   --sidebar-primary: oklch(0.696 0.178 162);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.218 0.022 162);
+  --sidebar-accent: oklch(0.25 0.025 162);       /* lighter accent */
   --sidebar-accent-foreground: oklch(0.765 0.15 163);
-  --shadow-card: none;
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --shadow-card: 0 2px 8px oklch(0 0 0 / 0.3);  /* subtle shadow for depth */
+  --sidebar-border: oklch(1 0 0 / 18%);          /* increased opacity */
   --sidebar-ring: oklch(0.696 0.178 162);
 }
 

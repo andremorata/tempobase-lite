@@ -571,6 +571,7 @@ export interface SavedReportDto {
   billable?: boolean | null;
   description?: string | null;
   groupBy: SummaryGroupBy;
+  preset?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -587,6 +588,7 @@ export interface CreateSavedReportRequest {
   billable?: boolean | null;
   description?: string | null;
   groupBy?: SummaryGroupBy;
+  preset?: string | null;
 }
 
 export interface UpdateSavedReportRequest {
@@ -601,6 +603,7 @@ export interface UpdateSavedReportRequest {
   billable?: boolean | null;
   description?: string | null;
   groupBy?: SummaryGroupBy;
+  preset?: string | null;
 }
 
 export interface CreateSharedReportRequest {

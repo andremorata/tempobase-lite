@@ -80,9 +80,9 @@ export async function GET(request: NextRequest) {
     // Get Monday for a given date (Monday-anchored weeks)
     function getMonday(date: Date): string {
       const d = new Date(date);
-      const day = d.getDay();
+      const day = d.getUTCDay();
       const diff = day === 0 ? -6 : 1 - day; // If Sunday (0), go back 6 days; otherwise go to Monday
-      d.setDate(d.getDate() + diff);
+      d.setUTCDate(d.getUTCDate() + diff);
       return d.toISOString().split("T")[0];
     }
 
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       const dayTotals = [0, 0, 0, 0, 0, 0, 0];
 
       for (const entry of weekEntries) {
-        const entryDay = new Date(entry.entryDate).getDay();
+        const entryDay = new Date(entry.entryDate).getUTCDay();
         // Convert Sunday (0) to index 6, Monday (1) to index 0, etc.
         const dayIndex = entryDay === 0 ? 6 : entryDay - 1;
         dayTotals[dayIndex] += toNumber(entry.durationDecimal);

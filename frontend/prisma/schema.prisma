@@ -1,5 +1,4 @@
 // TempoBase Lite - Prisma Schema
-// Mirrors the EF Core schema for Vercel + Neon deployment
 
 generator client {
   provider = "prisma-client-js"

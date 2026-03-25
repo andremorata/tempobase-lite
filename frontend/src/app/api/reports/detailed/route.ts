@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
         clientName: entry.project?.client?.name || null,
         taskName: entry.task?.name || null,
         description: entry.description,
-        entryDate: entry.entryDate,
+        entryDate: entry.entryDate.toISOString().split("T")[0],
         startTime: entry.startTime,
         endTime: entry.endTime,
         durationDecimal: hours,
