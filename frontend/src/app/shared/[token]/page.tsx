@@ -8,7 +8,9 @@ import {
   PieChart, Pie,
 } from "recharts";
 import { Clock, AlertCircle, ChevronDown, ChevronRight, Calendar } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const BASE_URL = "/api";
 
@@ -16,6 +18,65 @@ const CHART_COLORS = [
   "#10b981", "#6366f1", "#f59e0b", "#ef4444", "#3b82f6",
   "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#84cc16",
 ];
+
+type ChartThemeStyles = {
+  tooltipContentStyle: {
+    backgroundColor: string;
+    border: string;
+    borderRadius: string;
+    color: string;
+    boxShadow: string;
+  };
+  tooltipLabelStyle: {
+    color: string;
+  };
+  tooltipItemStyle: {
+    color: string;
+  };
+  tooltipCursor: {
+    fill: string;
+  };
+};
+
+function getChartThemeStyles(isDark: boolean): ChartThemeStyles {
+  return isDark
+    ? {
+        tooltipContentStyle: {
+          backgroundColor: "#2b303a",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
+          borderRadius: "0.5rem",
+          color: "#f4f5f7",
+          boxShadow: "0 12px 26px rgba(0, 0, 0, 0.35)",
+        },
+        tooltipLabelStyle: {
+          color: "#b4bbc7",
+        },
+        tooltipItemStyle: {
+          color: "#f4f5f7",
+        },
+        tooltipCursor: {
+          fill: "rgba(255, 255, 255, 0.08)",
+        },
+      }
+    : {
+        tooltipContentStyle: {
+          backgroundColor: "#ffffff",
+          border: "1px solid #d8dde6",
+          borderRadius: "0.5rem",
+          color: "#1f2937",
+          boxShadow: "0 12px 26px rgba(15, 23, 42, 0.12)",
+        },
+        tooltipLabelStyle: {
+          color: "#667085",
+        },
+        tooltipItemStyle: {
+          color: "#1f2937",
+        },
+        tooltipCursor: {
+          fill: "rgba(15, 23, 42, 0.06)",
+        },
+      };
+}
 
 function fmtHours(h: number): string {
   const hrs = Math.floor(h);
@@ -109,7 +170,15 @@ interface SharedReportPayload {
 
 // ─── Summary view ──────────────────────────────────────────────────────────────
 
-function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; showAmounts: boolean }) {
+function SummaryView({
+  payload,
+  showAmounts,
+  chartTheme,
+}: {
+  payload: SharedSummaryData;
+  showAmounts: boolean;
+  chartTheme: ChartThemeStyles;
+}) {
   const { summary, entries } = payload;
 
   // Group entries: yearMonth → entryDate → entries[]
@@ -169,7 +238,7 @@ function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; sho
   return (
     <div className="space-y-5">
       {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${showAmounts ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">{fmtHours(summary.totalHours)}</p>
@@ -178,10 +247,12 @@ function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; sho
           <p className="text-xs text-muted-foreground">Billable Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">{fmtHours(summary.billableHours)}</p>
         </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Billed Amount</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">{fmtMoney(summary.totalBilledAmount)}</p>
-        </div>
+        {showAmounts && (
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Billed Amount</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">{fmtMoney(summary.totalBilledAmount)}</p>
+          </div>
+        )}
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Entries</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">{summary.totalEntries}</p>
@@ -208,7 +279,10 @@ function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; sho
                       : fmtHours(Number(v));
                   return [label, "Hours"];
                 }}
-                contentStyle={{ fontSize: 12 }}
+                contentStyle={{ ...chartTheme.tooltipContentStyle, fontSize: 12 }}
+                labelStyle={chartTheme.tooltipLabelStyle}
+                itemStyle={chartTheme.tooltipItemStyle}
+                cursor={chartTheme.tooltipCursor}
               />
               <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
                 {chartData.map((_, i) => (
@@ -379,7 +453,9 @@ function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; sho
                       : fmtHours(Number(v));
                   return [label, "Hours"];
                 }}
-                contentStyle={{ fontSize: 11 }}
+                contentStyle={{ ...chartTheme.tooltipContentStyle, fontSize: 11 }}
+                labelStyle={chartTheme.tooltipLabelStyle}
+                itemStyle={chartTheme.tooltipItemStyle}
               />
             </PieChart>
             <div className="mt-2 w-full space-y-1">
@@ -413,7 +489,7 @@ function SummaryView({ payload, showAmounts }: { payload: SharedSummaryData; sho
 
 // ─── Detailed view ─────────────────────────────────────────────────────────────
 
-function DetailedView({ data }: { data: DetailedData }) {
+function DetailedView({ data, showAmounts }: { data: DetailedData; showAmounts: boolean }) {
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
@@ -425,10 +501,12 @@ function DetailedView({ data }: { data: DetailedData }) {
           <span className="text-xs text-muted-foreground">Billable </span>
           <span className="font-bold tabular-nums text-emerald-500">{fmtHours(data.billableHours)}</span>
         </div>
-        <div className="rounded-lg border bg-card px-4 py-2">
-          <span className="text-xs text-muted-foreground">Billed </span>
-          <span className="font-bold tabular-nums text-emerald-500">{fmtMoney(data.totalBilledAmount)}</span>
-        </div>
+        {showAmounts && (
+          <div className="rounded-lg border bg-card px-4 py-2">
+            <span className="text-xs text-muted-foreground">Billed </span>
+            <span className="font-bold tabular-nums text-emerald-500">{fmtMoney(data.totalBilledAmount)}</span>
+          </div>
+        )}
       </div>
 
       <div className="overflow-auto rounded-lg border">
@@ -482,7 +560,7 @@ function DetailedView({ data }: { data: DetailedData }) {
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function WeeklyView({ data }: { data: WeeklyData }) {
+function WeeklyView({ data, chartTheme }: { data: WeeklyData; chartTheme: ChartThemeStyles }) {
   const chartData = data.weeks.map((w) => ({
     week: format(new Date(w.weekStart + "T00:00:00"), "MMM d"),
     hours: Number(w.weekTotal.toFixed(2)),
@@ -503,7 +581,13 @@ function WeeklyView({ data }: { data: WeeklyData }) {
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => [fmtHours(Number(v)), "Hours"]} contentStyle={{ fontSize: 12 }} />
+              <Tooltip
+                formatter={(v) => [fmtHours(Number(v)), "Hours"]}
+                contentStyle={{ ...chartTheme.tooltipContentStyle, fontSize: 12 }}
+                labelStyle={chartTheme.tooltipLabelStyle}
+                itemStyle={chartTheme.tooltipItemStyle}
+                cursor={chartTheme.tooltipCursor}
+              />
               <Bar dataKey="hours" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -559,9 +643,11 @@ function WeeklyView({ data }: { data: WeeklyData }) {
 
 export default function SharedReportPage() {
   const { token } = useParams<{ token: string }>();
+  const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(() => Boolean(token));
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<SharedReportPayload | null>(null);
+  const chartTheme = useMemo(() => getChartThemeStyles(resolvedTheme === "dark"), [resolvedTheme]);
 
   useEffect(() => {
     if (!token) return;
@@ -598,12 +684,15 @@ export default function SharedReportPage() {
               </p>
             </div>
           </div>
-          {report && (
-            <div className="flex items-center gap-1.5 rounded-md border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{fmtPeriod(report.from, report.to)}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {report && (
+              <div className="flex items-center gap-1.5 rounded-md border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>{fmtPeriod(report.from, report.to)}</span>
+              </div>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -625,13 +714,17 @@ export default function SharedReportPage() {
         {report && !loading && (
           <div className="space-y-4">
             {report.reportType === "Summary" && report.data && (
-              <SummaryView payload={report.data as SharedSummaryData} showAmounts={report.showAmounts ?? false} />
+              <SummaryView
+                payload={report.data as SharedSummaryData}
+                showAmounts={report.showAmounts ?? false}
+                chartTheme={chartTheme}
+              />
             )}
             {report.reportType === "Detailed" && report.data && (
-              <DetailedView data={report.data as DetailedData} />
+              <DetailedView data={report.data as DetailedData} showAmounts={report.showAmounts ?? false} />
             )}
             {report.reportType === "Weekly" && report.data && (
-              <WeeklyView data={report.data as WeeklyData} />
+              <WeeklyView data={report.data as WeeklyData} chartTheme={chartTheme} />
             )}
             {!report.data && (
               <div className="flex h-40 items-center justify-center rounded-lg border border-dashed">

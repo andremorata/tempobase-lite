@@ -38,6 +38,8 @@
 
 ## Evidence Log
 
+- 2026-03-25: Shared report amount-visibility UX fix completed. In the public shared report page, the top `Billed Amount` KPI card now renders only when `showAmounts` is enabled, for both Summary and Detailed report types, preventing misleading amount display when amounts are intentionally hidden.
+
 - 2026-03-25: Reports save/share compatibility fix completed. Saved/shared report APIs now normalize legacy title-case `groupBy` payloads (`Project`, `Client`, `Task`) to persisted lowercase values, and the summary endpoint now accepts either form. Added frontend regression coverage for the normalization helpers.
 
 - 2026-03-24: Legacy backend and Azure infrastructure fully removed. Repository cleaned to single-stack Next.js application. All docs, specs, README, and AGENTS.md updated to remove legacy references. `backend/`, `infra/`, `.github/workflows/`, and `docs/12-backend.md` deleted.
