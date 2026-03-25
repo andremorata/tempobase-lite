@@ -26,7 +26,7 @@ export function mapTimeEntry(entry: PrismaTimeEntryWithTags) {
     startTime: entry.startTime,
     endTime: entry.endTime,
     duration: entry.duration,
-    durationDecimal: entry.durationDecimal,
+    durationDecimal: entry.durationDecimal != null ? Number(entry.durationDecimal) : null,
     isBillable: entry.isBillable,
     isRunning: entry.isRunning,
     tagIds: entry.tags.map((tt) => tt.tagId),
