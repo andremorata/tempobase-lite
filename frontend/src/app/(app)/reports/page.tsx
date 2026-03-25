@@ -585,7 +585,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
   return (
     <div className="space-y-5">
       {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${filters.showAmounts ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">
@@ -598,12 +598,14 @@ function SummaryTab({ filters }: { filters: FilterState }) {
             {summaryData ? fmtHours(summaryData.billableHours) : "—"}
           </p>
         </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Billed Amount</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
-            {summaryData ? fmtMoney(summaryData.totalBilledAmount) : "—"}
-          </p>
-        </div>
+        {filters.showAmounts && (
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Billed Amount</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
+              {summaryData ? fmtMoney(summaryData.totalBilledAmount) : "—"}
+            </p>
+          </div>
+        )}
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Entries</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">

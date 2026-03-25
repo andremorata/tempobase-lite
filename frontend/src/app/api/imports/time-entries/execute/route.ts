@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        const durationMs = endTime.getTime() - startTime.getTime();
+        const durationHours = durationMs / (1000 * 60 * 60);
+
         if (durationHours > 24) {
           errors.push({ rowIndex: row.rowIndex, message: "Entry duration exceeds 24 hours." });
           continue;
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest) {
             entryDate,
             startTime,
             endTime,
+            duration: durationMs,
             durationDecimal,
             isBillable: row.isBillable,
             isRunning: false,
