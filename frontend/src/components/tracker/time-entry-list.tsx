@@ -405,70 +405,75 @@ export function TimeEntryList() {
                   return (
                     <div
                       key={entry.id}
-                      className="flex items-center gap-3 px-4 py-3"
+                      className="flex flex-col gap-1.5 px-4 py-3 sm:flex-row sm:items-center sm:gap-3"
                     >
-                      {/* Description + tags on second line */}
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm">
-                          {entry.description || (
-                            <span className="text-muted-foreground italic">
-                              (no description)
-                            </span>
+                      {/* Line 1 (mobile): description + tags + project badge + billable */}
+                      <div className="flex items-center gap-2 sm:contents">
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm">
+                            {entry.description || (
+                              <span className="text-muted-foreground italic">
+                                (no description)
+                              </span>
+                            )}
+                          </p>
+                          {entry.tagIds && entry.tagIds.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.tagIds.map((tid) => {
+                                const tag = tagMap.get(tid);
+                                if (!tag) return null;
+                                return (
+                                  <span
+                                    key={tid}
+                                    className="inline-flex items-center rounded-full border px-1.5 py-px text-[10px] font-medium leading-none"
+                                    style={
+                                      tag.color
+                                        ? { borderColor: tag.color, color: tag.color }
+                                        : undefined
+                                    }
+                                  >
+                                    {tag.name}
+                                  </span>
+                                );
+                              })}
+                            </div>
                           )}
-                        </p>
-                        {entry.tagIds && entry.tagIds.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {entry.tagIds.map((tid) => {
-                              const tag = tagMap.get(tid);
-                              if (!tag) return null;
-                              return (
-                                <span
-                                  key={tid}
-                                  className="inline-flex items-center rounded-full border px-1.5 py-px text-[10px] font-medium leading-none"
-                                  style={
-                                    tag.color
-                                      ? { borderColor: tag.color, color: tag.color }
-                                      : undefined
-                                  }
-                                >
-                                  {tag.name}
-                                </span>
-                              );
-                            })}
-                          </div>
+                        </div>
+
+                        {/* Project badge */}
+                        {project && (
+                          <Badge
+                            variant="outline"
+                            className="shrink-0"
+                            style={{ borderColor: project.color, color: project.color }}
+                          >
+                            {project.name}
+                          </Badge>
+                        )}
+
+                        {/* Billable */}
+                        {entry.isBillable && (
+                          <Badge variant="secondary" className="shrink-0 text-xs">
+                            $
+                          </Badge>
                         )}
                       </div>
 
-                      {/* Project badge */}
-                      {project && (
-                        <Badge
-                          variant="outline"
-                          className="shrink-0"
-                          style={{ borderColor: project.color, color: project.color }}
-                        >
-                          {project.name}
-                        </Badge>
-                      )}
+                      {/* Line 2 (mobile): time range + duration */}
+                      <div className="flex items-center gap-3 sm:contents">
+                        {/* Time range */}
+                        <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatTime(entry.startTime)}
+                          {entry.endTime && ` – ${formatTime(entry.endTime)}`}
+                        </span>
 
-                      {/* Billable */}
-                      {entry.isBillable && (
-                        <Badge variant="secondary" className="shrink-0 text-xs">
-                          $
-                        </Badge>
-                      )}
+                        {/* Duration */}
+                        <span className="shrink-0 font-mono text-sm tabular-nums sm:w-16 sm:text-right">
+                          {formatDuration(entry.duration)}
+                        </span>
+                      </div>
 
-                      {/* Time range */}
-                      <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatTime(entry.startTime)}
-                        {entry.endTime && ` – ${formatTime(entry.endTime)}`}
-                      </span>
-
-                      {/* Duration */}
-                      <span className="shrink-0 font-mono text-sm tabular-nums w-16 text-right">
-                        {formatDuration(entry.duration)}
-                      </span>
-
-                      {/* Actions */}
+                      {/* Line 3 (mobile): action buttons */}
                       <div className="flex shrink-0 gap-1">
                         {!runningEntry && (
                           <Button
