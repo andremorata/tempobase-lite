@@ -194,7 +194,9 @@ function SummaryView({
     return new Map([...months.entries()].sort((a, b) => b[0].localeCompare(a[0])));
   }, [entries]);
 
-  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(
+    () => new Set(grouped.keys())
+  );
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   const toggleMonth = (ym: string) =>
@@ -296,7 +298,7 @@ function SummaryView({
 
       {/* Grid + Donut */}
       {grouped.size > 0 && (
-        <div className="flex gap-4 items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           {/* Hierarchical table */}
           <div className="flex-1 min-w-0 overflow-hidden rounded-lg border">
             <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2.5">
@@ -425,7 +427,7 @@ function SummaryView({
           </div>
 
           {/* Donut */}
-          <div className="w-56 shrink-0 rounded-lg border bg-card p-4 flex flex-col items-center">
+          <div className="w-full sm:w-56 sm:shrink-0 rounded-lg border bg-card p-4 flex flex-col items-center">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground self-start">
               Distribution
             </p>
@@ -650,6 +652,12 @@ export default function SharedReportPage() {
   const chartTheme = useMemo(() => getChartThemeStyles(resolvedTheme === "dark"), [resolvedTheme]);
 
   useEffect(() => {
+    if (report?.name?.trim()) {
+      document.title = `${report.name.trim()} - TempoBase`;
+    }
+  }, [report]);
+
+  useEffect(() => {
     if (!token) return;
     fetch(`${BASE_URL}/public/reports/${token}`)
       .then(async (res) => {
@@ -673,8 +681,8 @@ export default function SharedReportPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card px-6 py-4">
-        <div className="mx-auto max-w-5xl flex items-center justify-between">
+      <header className="border-b bg-card px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto max-w-5xl flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-emerald-500" />
             <div>
