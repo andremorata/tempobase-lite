@@ -757,8 +757,9 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                           {dateExpanded && entries.map((entry) => (
                             <div
                               key={entry.id}
-                              className="flex items-center justify-between border-t border-border/20 px-4 py-2 pl-16 text-xs"
+                              className="flex flex-col gap-0.5 border-t border-border/20 px-4 py-2 pl-16 text-xs"
                             >
+                              {/* Line 1: color dot + description + project + billable */}
                               <div className="flex min-w-0 items-center gap-2">
                                 {entry.projectColor && (
                                   <span
@@ -766,7 +767,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                                     style={{ backgroundColor: entry.projectColor }}
                                   />
                                 )}
-                                <span className="truncate text-foreground max-w-xs">
+                                <span className="truncate text-foreground">
                                   {entry.description ?? (
                                     <em className="text-muted-foreground/50">No description</em>
                                   )}
@@ -781,12 +782,13 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                                   <span className="shrink-0 font-bold text-emerald-500">$</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-4 ml-4 shrink-0">
+                              {/* Line 2: duration + amount */}
+                              <div className="flex items-center gap-4 pl-4 shrink-0">
                                 <span className="tabular-nums text-muted-foreground">
                                   {fmtHours(entry.durationDecimal ?? 0)}
                                 </span>
                                 {showAmounts && (
-                                  <span className="w-20 text-right tabular-nums">
+                                  <span className="tabular-nums">
                                     {entry.billedAmount != null && entry.billedAmount > 0 ? (
                                       <span className="text-emerald-500">{fmtMoney(entry.billedAmount)}</span>
                                     ) : (
