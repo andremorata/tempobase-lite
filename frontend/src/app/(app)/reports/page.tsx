@@ -661,14 +661,14 @@ function SummaryTab({ filters }: { filters: FilterState }) {
           )}
 
           {/* Grid + Donut side-by-side */}
-          <div className="flex gap-4 items-start">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
             {/* Hierarchical table: Month → Date → Entries */}
             <div className="flex-1 min-w-0 overflow-hidden rounded-lg border">
             <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Period
               </span>
-              <div className="flex items-center gap-8 shrink-0">
+              <div className="flex items-center gap-4 shrink-0">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Duration
                 </span>
@@ -706,7 +706,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                           ({allMonthEntries.length} entries)
                         </span>
                       </div>
-                      <div className="flex items-center gap-8 shrink-0">
+                      <div className="flex items-center gap-4 shrink-0">
                         <span className="text-sm font-bold tabular-nums">{fmtHours(monthTotal)}</span>
                         {showAmounts && (
                           <span className="w-20 text-right text-sm font-bold tabular-nums text-emerald-500">
@@ -739,7 +739,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                               </span>
                               <span className="text-xs text-muted-foreground/50">({entries.length})</span>
                             </div>
-                            <div className="flex items-center gap-8 shrink-0">
+                            <div className="flex items-center gap-4 shrink-0">
                               <span className="text-sm tabular-nums text-muted-foreground">
                                 {fmtHours(dateTotal)}
                               </span>
@@ -781,7 +781,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                                   <span className="shrink-0 font-bold text-emerald-500">$</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-8 ml-4 shrink-0">
+                              <div className="flex items-center gap-4 ml-4 shrink-0">
                                 <span className="tabular-nums text-muted-foreground">
                                   {fmtHours(entry.durationDecimal ?? 0)}
                                 </span>
@@ -807,38 +807,40 @@ function SummaryTab({ filters }: { filters: FilterState }) {
           </div>
 
             {/* Donut distribution chart */}
-            <div className="w-56 shrink-0 rounded-lg border bg-card p-4 flex flex-col items-center">
+            <div className="w-full lg:w-56 lg:shrink-0 rounded-lg border bg-card p-4 flex flex-col items-center">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground self-start">
                 Distribution
               </p>
-              <PieChart width={180} height={180}>
-                <Pie
-                  data={chartData}
-                  dataKey="hours"
-                  nameKey="month"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={52}
-                  outerRadius={80}
-                  paddingAngle={2}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v, _name, props) => {
-                    const entry = props?.payload as (typeof chartData)[0] | undefined;
-                    const label =
-                      showAmounts && entry?.billedAmount != null && entry.billedAmount > 0
-                        ? `${fmtHours(Number(v))} (${fmtMoney(entry.billedAmount)})`
-                        : fmtHours(Number(v));
-                    return [label, "Hours"];
-                  }}
-                  contentStyle={{ fontSize: 11 }}
-                />
-              </PieChart>
-              <div className="mt-2 w-full space-y-1">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="hours"
+                    nameKey="month"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="29%"
+                    outerRadius="44%"
+                    paddingAngle={2}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v, _name, props) => {
+                      const entry = props?.payload as (typeof chartData)[0] | undefined;
+                      const label =
+                        showAmounts && entry?.billedAmount != null && entry.billedAmount > 0
+                          ? `${fmtHours(Number(v))} (${fmtMoney(entry.billedAmount)})`
+                          : fmtHours(Number(v));
+                      return [label, "Hours"];
+                    }}
+                    contentStyle={{ fontSize: 11 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-2 w-full grid grid-cols-2 gap-x-4 gap-y-1 lg:grid-cols-1">
                 {chartData.map((item, i) => (
                   <div key={item.month} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
