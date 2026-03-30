@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         lastName: true,
         role: true,
         isActive: true,
+        canViewAmounts: true,
         createdAt: true,
       },
       orderBy: [

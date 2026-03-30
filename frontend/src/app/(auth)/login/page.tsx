@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -28,9 +28,15 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
 
   const {
     register,

@@ -29,6 +29,7 @@ import {
   useArchiveProject,
 } from "@/lib/api/hooks/projects";
 import { useClients } from "@/lib/api/hooks/clients";
+import { useCurrentUserProfile } from "@/lib/api/hooks/account";
 import { useSummaryReport } from "@/lib/api/hooks/reports";
 import { TaskList } from "@/components/projects/task-list";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -48,6 +49,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectsPage() {
   const { data: projects, isLoading } = useProjects(true);
   const { data: clients } = useClients();
+  const { data: profile } = useCurrentUserProfile();
+  const canViewAmounts = profile?.canViewAmounts ?? true;
   const { data: summaryReport } = useSummaryReport({ groupBy: "Project" });
   const projectHoursMap = new Map(
     summaryReport?.groups.map((g) => [g.groupId, g.totalHours]) ?? [],
@@ -325,46 +328,48 @@ export default function ProjectsPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Billing type</Label>
-              <div className="flex items-center gap-4">
-                <Select
-                  value={billingType}
-                  onValueChange={(v) => setBillingType(v as BillingType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Hourly">Hourly</SelectItem>
-                    <SelectItem value="Fixed">Fixed</SelectItem>
-                    <SelectItem value="NonBillable">Non-billable</SelectItem>
-                  </SelectContent>
-                </Select>
-                {billingType === "Hourly" && (
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="proj-rate" className="whitespace-nowrap">
-                      Rate/hr
-                    </Label>
-                    <div className="relative w-28">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                        $
-                      </span>
-                      <Input
-                        id="proj-rate"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={hourlyRate}
-                        onChange={(e) => setHourlyRate(e.target.value)}
-                        className="pl-6"
-                        placeholder="0.00"
-                      />
+            {canViewAmounts && (
+              <div className="space-y-2">
+                <Label>Billing type</Label>
+                <div className="flex items-center gap-4">
+                  <Select
+                    value={billingType}
+                    onValueChange={(v) => setBillingType(v as BillingType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hourly">Hourly</SelectItem>
+                      <SelectItem value="Fixed">Fixed</SelectItem>
+                      <SelectItem value="NonBillable">Non-billable</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {billingType === "Hourly" && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="proj-rate" className="whitespace-nowrap">
+                        Rate/hr
+                      </Label>
+                      <div className="relative w-28">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                          $
+                        </span>
+                        <Input
+                          id="proj-rate"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={hourlyRate}
+                          onChange={(e) => setHourlyRate(e.target.value)}
+                          className="pl-6"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="proj-budget">Budget (hours)</Label>
               <Input

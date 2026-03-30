@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Link, Plus, Share2, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, Link, Plus, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SharedReportResponse } from "@/lib/api/types";
 
@@ -83,7 +83,7 @@ export function SharedReportsControl({
         {open && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-full z-20 mt-1.5 w-80 rounded-xl border bg-popover p-1.5 shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-1.5 w-96 rounded-xl border bg-popover p-1.5 shadow-lg">
               <div className="flex items-center justify-between px-2 py-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Account shares</p>
                 <Button
@@ -135,10 +135,14 @@ export function SharedReportsControl({
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-2 flex flex-nowrap items-center gap-2">
                         <Button size="sm" variant="outline" onClick={() => onCopy(share)} className="h-7 px-2.5 text-xs gap-1">
                           <Link className="h-3 w-3" />
                           Copy link
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs gap-1" onClick={() => window.open(`/shared/${share.token}`, "_blank", "noopener,noreferrer")}>
+                          <ExternalLink className="h-3 w-3" />
+                          Open
                         </Button>
                       </div>
                     </div>

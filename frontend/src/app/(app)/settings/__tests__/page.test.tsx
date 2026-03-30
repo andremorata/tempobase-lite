@@ -55,6 +55,7 @@ let profileData: {
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId?: string | null;
   showAuditMetadata: boolean;
+  canViewAmounts: boolean;
   createdAt: string;
 };
 
@@ -71,6 +72,7 @@ let teamMembersData: Array<{
   lastName: string;
   role: Role;
   isActive: boolean;
+  canViewAmounts: boolean;
   createdAt: string;
 }>;
 
@@ -102,6 +104,7 @@ function seedData() {
     dateFormat: "system",
     defaultProjectId: "project-1",
     showAuditMetadata: true,
+    canViewAmounts: true,
     createdAt: "2026-03-23T00:00:00Z",
   };
 
@@ -118,6 +121,7 @@ function seedData() {
       lastName: currentUser?.lastName ?? "User",
       role: currentUser?.role ?? "Owner",
       isActive: true,
+      canViewAmounts: true,
       createdAt: "2026-03-23T00:00:00Z",
     },
     {
@@ -127,6 +131,7 @@ function seedData() {
       lastName: "Member",
       role: "Member",
       isActive: true,
+      canViewAmounts: true,
       createdAt: "2026-03-23T00:00:00Z",
     },
   ];
@@ -379,6 +384,31 @@ describe("SettingsPage", () => {
     });
     expect(mockLogout).toHaveBeenCalledOnce();
     expect(mockReplace).toHaveBeenCalledWith("/login");
+  });
+
+  it("toggles canViewAmounts for a team member and calls updateTeamMember", async () => {
+    const user = userEvent.setup();
+    mockUpdateTeamMember.mockResolvedValue({ ...teamMembersData[1], canViewAmounts: false });
+
+    render(<SettingsPage />);
+
+    const switches = screen.getAllByRole("switch");
+    // The "View amounts" switch for the non-self member (Morgan Member)
+    const viewAmountsSwitch = switches.find((s) =>
+      s.closest("[data-testid]") === null &&
+      s.getAttribute("aria-checked") === "true"
+    ) ?? switches[switches.length - 1];
+
+    await user.click(viewAmountsSwitch);
+
+    await waitFor(() => {
+      expect(mockUpdateTeamMember).toHaveBeenCalledWith({
+        memberId: "user-2",
+        data: { canViewAmounts: false },
+      });
+    });
+
+    expect(mockToastSuccess).toHaveBeenCalledWith("Member can no longer view amounts.");
   });
 
   it("shows parsed API validation errors in a toast for workspace deletion", async () => {

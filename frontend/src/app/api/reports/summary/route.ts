@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 import { toSummaryReportGroupBy } from "@/lib/reports/group-by";
 
 const summaryGroupBySchema = z.enum(["Project", "Client", "Task", "project", "client", "task"]);
@@ -29,6 +29,13 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUserId = await getCurrentUserId();
+
+    const userPerms = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { canViewAmounts: true },
+    });
+    const canViewAmounts = userPerms?.canViewAmounts ?? true;
 
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = QuerySchema.parse(searchParams);
@@ -158,9 +165,11 @@ export async function GET(request: NextRequest) {
 
       if (entry.isBillable) {
         group.billableHours += hours;
-        // Calculate billed amount using task rate > project rate
-        const rate = entry.task?.hourlyRate ?? entry.project?.hourlyRate;
-        group.billedAmount += hours * toNumber(rate);
+        if (canViewAmounts) {
+          // Calculate billed amount using task rate > project rate
+          const rate = entry.task?.hourlyRate ?? entry.project?.hourlyRate;
+          group.billedAmount += hours * toNumber(rate);
+        }
       }
     }
 
@@ -171,7 +180,7 @@ export async function GET(request: NextRequest) {
         color: g.color,
         totalHours: Number(g.totalHours.toFixed(2)),
         billableHours: Number(g.billableHours.toFixed(2)),
-        billedAmount: Number(g.billedAmount.toFixed(2)),
+        billedAmount: canViewAmounts ? Number(g.billedAmount.toFixed(2)) : null,
         entryCount: g.entryCount,
       }))
       .sort((a, b) => b.totalHours - a.totalHours);
@@ -180,7 +189,7 @@ export async function GET(request: NextRequest) {
       (acc, g) => ({
         totalHours: acc.totalHours + g.totalHours,
         billableHours: acc.billableHours + g.billableHours,
-        totalBilledAmount: acc.totalBilledAmount + g.billedAmount,
+        totalBilledAmount: acc.totalBilledAmount + (g.billedAmount ?? 0),
         entryCount: acc.entryCount + g.entryCount,
       }),
       { totalHours: 0, billableHours: 0, totalBilledAmount: 0, entryCount: 0 }
@@ -191,7 +200,7 @@ export async function GET(request: NextRequest) {
       groups: summary,
       totalHours: Number(totals.totalHours.toFixed(2)),
       billableHours: Number(totals.billableHours.toFixed(2)),
-      totalBilledAmount: Number(totals.totalBilledAmount.toFixed(2)),
+      totalBilledAmount: canViewAmounts ? Number(totals.totalBilledAmount.toFixed(2)) : null,
       totalEntries: totals.entryCount,
     });
   } catch (error) {

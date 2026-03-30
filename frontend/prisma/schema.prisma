@@ -75,6 +75,7 @@ model User {
   dateFormat           String    @default("system") @map("date_format") @db.VarChar(20)
   defaultProjectId     String?   @map("default_project_id") @db.Uuid
   showAuditMetadata    Boolean   @default(true) @map("show_audit_metadata")
+  canViewAmounts       Boolean   @default(true) @map("can_view_amounts")
 
   // Audit fields
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz

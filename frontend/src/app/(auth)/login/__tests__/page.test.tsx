@@ -5,19 +5,25 @@ import { ApiError } from "@/lib/api/client";
 import LoginPage from "../page";
 
 const mockPush = vi.fn();
+const mockReplace = vi.fn();
 const mockLogin = vi.fn();
 
+let authUser: { id: string; email: string } | null = null;
+let authIsLoading = false;
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
 vi.mock("@/contexts/auth-context", () => ({
-  useAuth: () => ({ login: mockLogin }),
+  useAuth: () => ({ login: mockLogin, user: authUser, isLoading: authIsLoading }),
 }));
 
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authUser = null;
+    authIsLoading = false;
   });
 
   it("signs in and redirects to the dashboard", async () => {
@@ -37,6 +43,17 @@ describe("LoginPage", () => {
       });
     });
     expect(mockPush).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("redirects to dashboard when user is already authenticated", async () => {
+    authUser = { id: "user-1", email: "owner@example.com" };
+    authIsLoading = false;
+
+    render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/dashboard");
+    });
   });
 
   it("shows a friendly error for invalid credentials", async () => {

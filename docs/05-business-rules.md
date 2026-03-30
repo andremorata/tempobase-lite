@@ -123,6 +123,7 @@
 | Account | Delete | Yes | No | No | No | No |
 | User | Invite | Yes | Yes | No | No | No |
 | User | Change role | Yes | Yes | No | No | No |
+| User | Toggle canViewAmounts | Yes | Yes | No | No | No |
 | User | Deactivate | Yes | Yes | No | No | No |
 | Client | Create/Edit | Yes | Yes | Yes | No | No |
 | Project | Create/Edit | Yes | Yes | Yes | No | No |
@@ -149,6 +150,7 @@
 - Duration is derived from start/end timestamps or validated manual input.
 - Decimal duration is a derived reporting value.
 - Amount is based on duration multiplied by the active rate source when billing is enabled.
+- When a user's `canViewAmounts` is `false`, all monetary values (billed amounts, rates) are stripped server-side from report responses and hidden from the UI. This is enforced at the API layer regardless of client state.
 - Rounding, when supported, is applied at presentation or export time unless explicitly persisted.
 
 ## 8. Related Documents

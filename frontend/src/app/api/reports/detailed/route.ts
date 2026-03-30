@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 
 const QuerySchema = z.object({
   from: z.string().optional(),
@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUserId = await getCurrentUserId();
+
+    const userPerms = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { canViewAmounts: true },
+    });
+    const canViewAmounts = userPerms?.canViewAmounts ?? true;
 
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = QuerySchema.parse(searchParams);
@@ -136,7 +143,7 @@ export async function GET(request: NextRequest) {
     const mappedEntries = entries.map((entry) => {
       const hours = toNumber(entry.durationDecimal);
       const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
-      const billedAmount = entry.isBillable ? hours * rate : null;
+      const billedAmount = canViewAmounts && entry.isBillable ? hours * rate : null;
 
       return {
         id: entry.id,
@@ -174,7 +181,7 @@ export async function GET(request: NextRequest) {
       entries: mappedEntries,
       totalHours: Number(totalHours.toFixed(2)),
       billableHours: Number(billableHours.toFixed(2)),
-      totalBilledAmount: Number(totalBilled.toFixed(2)),
+      totalBilledAmount: canViewAmounts ? Number(totalBilled.toFixed(2)) : null,
       totalEntries: total,
       page: query.page,
       pageSize: query.pageSize,

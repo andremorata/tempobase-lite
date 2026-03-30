@@ -116,6 +116,7 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [memberRoleDrafts, setMemberRoleDrafts] = useState<Record<string, string>>({});
+  const [memberAmountDrafts, setMemberAmountDrafts] = useState<Record<string, boolean>>({});
   const [purgeFrom, setPurgeFrom] = useState("");
   const [purgeTo, setPurgeTo] = useState("");
   const [selfDeletePassword, setSelfDeletePassword] = useState("");
@@ -260,6 +261,25 @@ export default function SettingsPage() {
       toast.success("Member role updated.");
     } catch (error) {
       showErrorToast("Could not update member role.", error, "Failed to update member role.");
+    }
+  };
+
+  const handleToggleCanViewAmounts = async (memberId: string, checked: boolean) => {
+    setMemberAmountDrafts((current) => ({ ...current, [memberId]: checked }));
+    try {
+      await updateTeamMember.mutateAsync({
+        memberId,
+        data: { canViewAmounts: checked },
+      });
+      toast.success(checked ? "Member can now view amounts." : "Member can no longer view amounts.");
+    } catch (error) {
+      // Revert optimistic update on failure
+      setMemberAmountDrafts((current) => {
+        const next = { ...current };
+        delete next[memberId];
+        return next;
+      });
+      showErrorToast("Could not update amount visibility.", error, "Failed to update amount visibility.");
     }
   };
 
@@ -681,6 +701,22 @@ export default function SettingsPage() {
                             >
                               Save role
                             </Button>
+                          </div>
+
+                          <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
+                            <div className="space-y-0.5">
+                              <p className="text-sm font-medium">View amounts</p>
+                              <p className="text-xs text-muted-foreground">Allow this member to see monetary values</p>
+                            </div>
+                            <Switch
+                              checked={memberAmountDrafts[member.id] ?? member.canViewAmounts}
+                              onCheckedChange={(checked) => handleToggleCanViewAmounts(member.id, checked)}
+                              disabled={
+                                updateTeamMember.isPending ||
+                                removeTeamMember.isPending ||
+                                (user?.role === "Admin" && member.role === "Admin")
+                              }
+                            />
                           </div>
 
                           <Button

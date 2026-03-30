@@ -11,7 +11,8 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin, getCurrentUserId } from "@/lib/auth/helpers";
 
 const UpdateMemberRoleSchema = z.object({
-  role: z.enum(["Owner", "Admin", "Manager", "Member", "Viewer"]),
+  role: z.enum(["Owner", "Admin", "Manager", "Member", "Viewer"]).optional(),
+  canViewAmounts: z.boolean().optional(),
 });
 
 // PUT /api/team/members/[id]
@@ -43,11 +44,12 @@ export async function PUT(
       );
     }
 
-    // Update role
+    // Update member settings
     const updatedMember = await prisma.user.update({
       where: { id },
       data: {
-        role: validated.role,
+        ...(validated.role !== undefined && { role: validated.role }),
+        ...(validated.canViewAmounts !== undefined && { canViewAmounts: validated.canViewAmounts }),
         updatedAt: new Date(),
       },
       select: {
@@ -57,6 +59,7 @@ export async function PUT(
         lastName: true,
         role: true,
         isActive: true,
+        canViewAmounts: true,
         createdAt: true,
       },
     });

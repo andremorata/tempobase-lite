@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         dateFormat: true,
         defaultProjectId: true,
         showAuditMetadata: true,
+        canViewAmounts: true,
       },
     });
 
@@ -85,6 +86,7 @@ export async function PUT(request: NextRequest) {
         dateFormat: true,
         defaultProjectId: true,
         showAuditMetadata: true,
+        canViewAmounts: true,
       },
     });
 

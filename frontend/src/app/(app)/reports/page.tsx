@@ -44,6 +44,7 @@ import type { SavedReportDto, SharedReportResponse } from "@/lib/api/types";
 import { useProjects } from "@/lib/api/hooks/projects";
 import { useClients } from "@/lib/api/hooks/clients";
 import { useProjectTasks } from "@/lib/api/hooks/tasks";
+import { useCurrentUserProfile } from "@/lib/api/hooks/account";
 import { NameInput, SharedReportsControl } from "@/components/reports/shared-reports-control";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { toast } from "sonner";
@@ -253,9 +254,11 @@ function DateRangePicker({
 function FilterBar({
   filters,
   onChange,
+  canViewAmounts,
 }: {
   filters: FilterState;
   onChange: (f: FilterState) => void;
+  canViewAmounts: boolean;
 }) {
   const { data: projects } = useProjects();
   const { data: clients } = useClients();
@@ -405,20 +408,22 @@ function FilterBar({
       {/* Display options separator */}
       <div className="h-5 w-px bg-border/60 mx-0.5" />
 
-      {/* Show amounts toggle */}
-      <button
-        type="button"
-        onClick={() => onChange({ ...filters, showAmounts: !filters.showAmounts })}
-        className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${
-          filters.showAmounts
-            ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
-            : "border-border text-muted-foreground hover:text-foreground"
-        }`}
-        title="Show monetary amounts"
-      >
-        <DollarSign className="h-3 w-3" />
-        Amounts
-      </button>
+      {/* Show amounts toggle — hidden when user lacks canViewAmounts permission */}
+      {canViewAmounts && (
+        <button
+          type="button"
+          onClick={() => onChange({ ...filters, showAmounts: !filters.showAmounts })}
+          className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${
+            filters.showAmounts
+              ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+          title="Show monetary amounts"
+        >
+          <DollarSign className="h-3 w-3" />
+          Amounts
+        </button>
+      )}
 
       {/* Round up toggle */}
       <button
@@ -1346,6 +1351,9 @@ function getActiveReportType(activeTab: "summary" | "detailed" | "weekly") {
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<"summary" | "detailed" | "weekly">("summary");
 
+  const { data: profile } = useCurrentUserProfile();
+  const canViewAmounts = profile?.canViewAmounts ?? true;
+
   const [filters, setFilters] = useState<FilterState>(loadInitialFilters);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [baseFilters, setBaseFilters] = useState<FilterState | null>(null);
@@ -1555,7 +1563,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <FilterBar filters={filters} onChange={handleFiltersChange} />
+        <FilterBar filters={filters} onChange={handleFiltersChange} canViewAmounts={canViewAmounts} />
 
         <TabsContent value="summary">
           <SummaryTab filters={filters} />

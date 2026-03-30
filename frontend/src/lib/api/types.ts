@@ -273,6 +273,7 @@ export interface UserProfile {
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId?: string | null;
   showAuditMetadata: boolean;
+  canViewAmounts: boolean;
 }
 
 export interface UpdateUserProfileRequest {
@@ -434,11 +435,13 @@ export interface TeamMember {
   lastName: string;
   role: string;
   isActive: boolean;
+  canViewAmounts: boolean;
   createdAt: string;
 }
 
 export interface UpdateTeamMemberRequest {
-  role: "Admin" | "Manager" | "Member" | "Viewer";
+  role?: "Admin" | "Manager" | "Member" | "Viewer";
+  canViewAmounts?: boolean;
 }
 
 export interface AccountInvite {

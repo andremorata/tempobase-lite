@@ -99,6 +99,12 @@ export async function POST(request: NextRequest) {
     const accountId = await getCurrentTenantId();
     const userId = await getCurrentUserId();
 
+    const userPerms = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { canViewAmounts: true },
+    });
+    const canViewAmounts = userPerms?.canViewAmounts ?? true;
+
     const body = await request.json();
     const validated = CreateSharedReportSchema.parse(body);
     const groupBy = toPersistedReportGroupBy(validated.groupBy);
@@ -122,7 +128,7 @@ export async function POST(request: NextRequest) {
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
-    // Serialize filters to JSON
+    // Serialize filters to JSON — force showAmounts off if user cannot view amounts
     const filtersJson = JSON.stringify({
       from: validated.from,
       to: validated.to,
@@ -133,7 +139,7 @@ export async function POST(request: NextRequest) {
       billable: validated.billable,
       description: validated.description,
       groupBy,
-      showAmounts: validated.showAmounts,
+      showAmounts: canViewAmounts ? validated.showAmounts : false,
     });
 
     const report = await prisma.sharedReport.create({
