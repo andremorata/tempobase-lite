@@ -13,6 +13,7 @@ import { requireAuth, getCurrentTenantId, getCurrentUserId, getCurrentUser } fro
 import { getMemberAccess, applyAccessFilter, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
 import { createAuditLog } from "@/lib/audit/logger";
 import { mapTimeEntry } from "./mappers";
+import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "./audit";
 
 // ─── List Time Entries ────────────────────────────────────────────────────────
 
@@ -205,17 +206,8 @@ export async function POST(request: NextRequest) {
       action: "create",
       entityType: "TimeEntry",
       entityId: entry.id,
-      summary: `Created time entry: ${durationHours.toFixed(2)}h on ${entryDate.toISOString().split("T")[0]}`,
-      changesJson: {
-        projectId: entry.projectId,
-        taskId: entry.taskId,
-        description: entry.description,
-        startTime: entry.startTime,
-        endTime: entry.endTime,
-        duration: entry.duration,
-        durationDecimal: entry.durationDecimal,
-        isBillable: entry.isBillable,
-      },
+      summary: summarizeTimeEntryAudit("create", entry),
+      changesJson: toTimeEntryAuditSnapshot(entry),
     });
 
     return NextResponse.json(mapTimeEntry(entry), { status: 201 });

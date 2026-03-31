@@ -11,6 +11,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { getMemberAccess, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
+import { createAuditLog } from "@/lib/audit/logger";
+import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "../audit";
 
 const UpdateTimeEntrySchema = z.object({
   projectId: z.string().uuid().nullable().optional(),
@@ -273,6 +275,22 @@ export async function PUT(
       });
     });
 
+    await createAuditLog({
+      accountId,
+      actorUserId: currentUser.id,
+      actorEmail: currentUser.email ?? "",
+      actorName: currentUser.name ?? "",
+      actorRole: currentUser.role ?? "User",
+      action: "update",
+      entityType: "TimeEntry",
+      entityId: updatedEntry.id,
+      summary: summarizeTimeEntryAudit("update", updatedEntry),
+      changesJson: {
+        before: toTimeEntryAuditSnapshot(existingEntry),
+        after: toTimeEntryAuditSnapshot(updatedEntry),
+      },
+    });
+
     return NextResponse.json({
       id: updatedEntry.id,
       userId: updatedEntry.userId,
@@ -370,6 +388,19 @@ export async function DELETE(
         isDeleted: true,
         updatedAt: new Date(),
       },
+    });
+
+    await createAuditLog({
+      accountId,
+      actorUserId: currentUser.id,
+      actorEmail: currentUser.email ?? "",
+      actorName: currentUser.name ?? "",
+      actorRole: currentUser.role ?? "User",
+      action: "delete",
+      entityType: "TimeEntry",
+      entityId: entry.id,
+      summary: summarizeTimeEntryAudit("delete", entry),
+      changesJson: toTimeEntryAuditSnapshot(entry),
     });
 
     return NextResponse.json({ success: true }, { status: 200 });

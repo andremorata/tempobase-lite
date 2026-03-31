@@ -9,6 +9,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { getMemberAccess, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
+import { createAuditLog } from "@/lib/audit/logger";
+import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "../audit";
 import { mapTimeEntry } from "../mappers";
 
 const StartTimerSchema = z.object({
@@ -77,6 +79,19 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    await createAuditLog({
+      accountId,
+      actorUserId: userId,
+      actorEmail: currentUser.email ?? "",
+      actorName: currentUser.name ?? "",
+      actorRole: currentUser.role ?? "User",
+      action: "start",
+      entityType: "TimeEntry",
+      entityId: entry.id,
+      summary: summarizeTimeEntryAudit("start", entry),
+      changesJson: toTimeEntryAuditSnapshot(entry),
     });
 
     return NextResponse.json(mapTimeEntry(entry), { status: 201 });

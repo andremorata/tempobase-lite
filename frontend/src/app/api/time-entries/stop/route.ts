@@ -6,14 +6,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { createAuditLog } from "@/lib/audit/logger";
+import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "../audit";
 import { mapTimeEntry } from "../mappers";
 
 export async function POST(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
-    const userId = await getCurrentUserId();
+    const currentUser = await getCurrentUser();
+    const userId = currentUser.id;
 
     // Find the running timer
     const runningTimer = await prisma.timeEntry.findFirst({
@@ -55,6 +58,19 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    await createAuditLog({
+      accountId,
+      actorUserId: userId,
+      actorEmail: currentUser.email ?? "",
+      actorName: currentUser.name ?? "",
+      actorRole: currentUser.role ?? "User",
+      action: "stop",
+      entityType: "TimeEntry",
+      entityId: stoppedEntry.id,
+      summary: summarizeTimeEntryAudit("stop", stoppedEntry),
+      changesJson: toTimeEntryAuditSnapshot(stoppedEntry),
     });
 
     return NextResponse.json(mapTimeEntry(stoppedEntry));

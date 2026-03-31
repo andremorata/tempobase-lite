@@ -44,7 +44,15 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
     });
   } catch (error) {
     // Log error but don't throw - audit logging should not break the main operation
-    console.error("Failed to create audit log:", error);
+    console.error("Failed to create audit log", {
+      action: params.action,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      actorUserId: params.actorUserId,
+      actorEmail: params.actorEmail,
+      accountId: params.accountId,
+      error,
+    });
   }
 }
 
