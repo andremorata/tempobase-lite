@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { Prisma } from "@prisma/client";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 
 // ─── List Tasks ───────────────────────────────────────────────────────────
 
@@ -38,11 +39,35 @@ export async function GET(
       );
     }
 
+    const currentUser = await getCurrentUser();
+    const taskWhere: Prisma.ProjectTaskWhereInput = { projectId, isDeleted: false };
+
+    // Enforce access restrictions for non-Owner/Admin users
+    if (currentUser.role !== "Owner" && currentUser.role !== "Admin") {
+      const [projectAccess, taskAccess] = await Promise.all([
+        prisma.userProjectAccess.findMany({
+          where: { userId: currentUser.id, accountId },
+          select: { projectId: true },
+        }),
+        prisma.userTaskAccess.findMany({
+          where: { userId: currentUser.id, accountId },
+          select: { taskId: true },
+        }),
+      ]);
+
+      // Block access if project is restricted and not in the user's allowed list
+      if (projectAccess.length > 0 && !projectAccess.some((a) => a.projectId === projectId)) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+
+      // Filter tasks if task-level restrictions exist
+      if (taskAccess.length > 0) {
+        taskWhere.id = { in: taskAccess.map((a) => a.taskId) };
+      }
+    }
+
     const tasks = await prisma.projectTask.findMany({
-      where: {
-        projectId,
-        isDeleted: false,
-      },
+      where: taskWhere,
       orderBy: {
         name: "asc",
       },

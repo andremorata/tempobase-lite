@@ -7,7 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
 import { mapTimeEntry } from "../mappers";
 
 const StartTimerSchema = z.object({
@@ -21,10 +22,20 @@ export async function POST(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
-    const userId = await getCurrentUserId();
+    const currentUser = await getCurrentUser();
+    const userId = currentUser.id;
+    const access = await getMemberAccess(userId, accountId, currentUser.role);
 
     const body = await request.json();
     const validated = StartTimerSchema.parse(body);
+
+    // Enforce access restrictions on the selected project/task
+    if (!isProjectAccessible(access, validated.projectId)) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (!isTaskAccessible(access, validated.taskId)) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
 
     // Check if there's already a running timer
     const runningTimer = await prisma.timeEntry.findFirst({

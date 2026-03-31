@@ -7,12 +7,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess } from "@/lib/auth/access";
 
 export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
+
+    // Build a reusable project restriction clause for time-entry queries
+    const projectRestriction = access.projectIds !== null
+      ? { projectId: { in: access.projectIds } }
+      : {};
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -31,7 +39,7 @@ export async function GET(request: NextRequest) {
     const last7Start = new Date(today);
     last7Start.setDate(today.getDate() - 6);
 
-    // Fetch week entries
+    // Fetch week entries (scoped to accessible projects)
     const weekEntries = await prisma.timeEntry.findMany({
       where: {
         accountId,
@@ -41,6 +49,7 @@ export async function GET(request: NextRequest) {
           gte: weekStart,
           lte: weekEnd,
         },
+        ...projectRestriction,
       },
       select: {
         durationDecimal: true,
@@ -77,6 +86,7 @@ export async function GET(request: NextRequest) {
         accountId,
         status: "Active",
         isDeleted: false,
+        ...(access.projectIds !== null ? { id: { in: access.projectIds } } : {}),
       },
     });
 
@@ -87,7 +97,7 @@ export async function GET(request: NextRequest) {
       billablePercentage: Number(billablePercentage.toFixed(1)),
     };
 
-    // Hours per day (last 7 days)
+    // Hours per day (last 7 days, scoped to accessible projects)
     const last7Entries = await prisma.timeEntry.findMany({
       where: {
         accountId,
@@ -97,6 +107,7 @@ export async function GET(request: NextRequest) {
           gte: last7Start,
           lte: today,
         },
+        ...projectRestriction,
       },
       select: {
         entryDate: true,
@@ -155,11 +166,12 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.totalHours - a.totalHours)
       .slice(0, 10); // Top 10 projects
 
-    // Recent entries (last 10)
+    // Recent entries (last 10, scoped to accessible projects)
     const recentEntries = await prisma.timeEntry.findMany({
       where: {
         accountId,
         isDeleted: false,
+        ...projectRestriction,
       },
       include: {
         project: {

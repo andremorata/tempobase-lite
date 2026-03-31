@@ -5,7 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess, isProjectAccessible } from "@/lib/auth/access";
 import { mapTimeEntry } from "../../mappers";
 
 const AdjustStartTimeSchema = z.object({
@@ -19,6 +20,8 @@ export async function PATCH(
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
     const { id } = await params;
 
     const body = await request.json();
@@ -37,6 +40,11 @@ export async function PATCH(
         { error: "Time entry not found" },
         { status: 404 }
       );
+    }
+
+    // Enforce access restrictions
+    if (!isProjectAccessible(access, entry.projectId)) {
+      return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
     }
 
     if (!entry.isRunning) {

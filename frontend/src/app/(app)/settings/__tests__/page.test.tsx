@@ -21,6 +21,7 @@ const mockCreateInvite = vi.fn();
 const mockRevokeInvite = vi.fn();
 const mockUpdateTeamMember = vi.fn();
 const mockRemoveTeamMember = vi.fn();
+const mockSetMemberAccess = vi.fn();
 const mockUpdateUser = vi.fn();
 const mockLogout = vi.fn();
 const mockClipboardWriteText = vi.fn();
@@ -74,6 +75,8 @@ let teamMembersData: Array<{
   isActive: boolean;
   canViewAmounts: boolean;
   createdAt: string;
+  allowedProjectIds: string[];
+  allowedTaskIds: string[];
 }>;
 
 let invitesData: Array<{
@@ -123,6 +126,8 @@ function seedData() {
       isActive: true,
       canViewAmounts: true,
       createdAt: "2026-03-23T00:00:00Z",
+      allowedProjectIds: [],
+      allowedTaskIds: [],
     },
     {
       id: "user-2",
@@ -133,6 +138,8 @@ function seedData() {
       isActive: true,
       canViewAmounts: true,
       createdAt: "2026-03-23T00:00:00Z",
+      allowedProjectIds: [],
+      allowedTaskIds: [],
     },
   ];
 
@@ -197,6 +204,7 @@ vi.mock("@/lib/api/hooks/team", () => ({
   useRevokeInvite: () => ({ mutateAsync: mockRevokeInvite, isPending: false }),
   useUpdateTeamMember: () => ({ mutateAsync: mockUpdateTeamMember, isPending: false }),
   useRemoveTeamMember: () => ({ mutateAsync: mockRemoveTeamMember, isPending: false }),
+  useSetMemberAccess: () => ({ mutateAsync: mockSetMemberAccess, isPending: false }),
 }));
 
 vi.mock("@/lib/api/hooks/projects", () => ({

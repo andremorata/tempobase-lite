@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
         isActive: true,
         canViewAmounts: true,
         createdAt: true,
+        projectAccess: { select: { projectId: true } },
+        taskAccess: { select: { taskId: true } },
       },
       orderBy: [
         { firstName: "asc" },
@@ -34,7 +36,20 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    return NextResponse.json(members);
+    return NextResponse.json(
+      members.map((m) => ({
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        role: m.role,
+        isActive: m.isActive,
+        canViewAmounts: m.canViewAmounts,
+        createdAt: m.createdAt,
+        allowedProjectIds: m.projectAccess.map((a) => a.projectId),
+        allowedTaskIds: m.taskAccess.map((a) => a.taskId),
+      }))
+    );
   } catch (error) {
     console.error("List team members error:", error);
     return NextResponse.json(

@@ -50,16 +50,42 @@ function decimalToHM(decimal: number): string {
 function parseHoursInput(raw: string): number | null {
   const trimmed = raw.trim();
   if (!trimmed || trimmed === "-") return 0;
+
+  // HH:MM format — e.g. "2:30"
   if (trimmed.includes(":")) {
     const [hStr, mStr] = trimmed.split(":");
     const h = parseInt(hStr || "0", 10);
     const m = parseInt(mStr || "0", 10);
     if (isNaN(h) || isNaN(m) || m >= 60) return null;
-    return h + m / 60;
+    const result = h + m / 60;
+    return result > 24 ? null : result;
   }
-  const n = parseFloat(trimmed);
-  if (isNaN(n) || n < 0 || n > 24) return null;
-  return n;
+
+  // Decimal format — e.g. "2.5"
+  if (trimmed.includes(".")) {
+    const n = parseFloat(trimmed);
+    if (isNaN(n) || n < 0 || n > 24) return null;
+    return n;
+  }
+
+  // Compact digit format — e.g. "2" → 2:00, "130" → 1:30, "200" → 2:00, "1500" → 15:00
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  let hours: number;
+  let minutes: number;
+  if (digits.length <= 2) {
+    hours = parseInt(digits, 10);
+    minutes = 0;
+  } else if (digits.length === 3) {
+    hours = parseInt(digits[0], 10);
+    minutes = parseInt(digits.slice(1), 10);
+  } else {
+    hours = parseInt(digits.slice(0, 2), 10);
+    minutes = parseInt(digits.slice(2, 4), 10);
+  }
+  if (isNaN(hours) || isNaN(minutes) || minutes >= 60) return null;
+  const result = hours + minutes / 60;
+  return result > 24 ? null : result;
 }
 
 function formatTimeRange(entry: TimeEntry): string {

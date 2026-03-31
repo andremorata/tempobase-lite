@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
 
 const UpdateTimeEntrySchema = z.object({
   projectId: z.string().uuid().nullable().optional(),
@@ -29,6 +30,8 @@ export async function GET(
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
     const { id } = await params;
 
     const entry = await prisma.timeEntry.findFirst({
@@ -61,6 +64,14 @@ export async function GET(
         { error: "Time entry not found" },
         { status: 404 }
       );
+    }
+
+    // Enforce access restrictions on the entry's project/task
+    if (!isProjectAccessible(access, entry.projectId)) {
+      return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
+    }
+    if (!isTaskAccessible(access, entry.taskId)) {
+      return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -120,6 +131,8 @@ export async function PUT(
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
     const { id } = await params;
 
     const body = await request.json();
@@ -139,6 +152,17 @@ export async function PUT(
         { error: "Time entry not found" },
         { status: 404 }
       );
+    }
+
+    // Enforce access: the existing entry and any new project/task must be accessible
+    if (!isProjectAccessible(access, existingEntry.projectId)) {
+      return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
+    }
+    if (validated.projectId !== undefined && !isProjectAccessible(access, validated.projectId)) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (validated.taskId !== undefined && !isTaskAccessible(access, validated.taskId)) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     // Cannot update running timer times
@@ -314,6 +338,8 @@ export async function DELETE(
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
     const { id } = await params;
 
     // Check if entry exists
@@ -330,6 +356,11 @@ export async function DELETE(
         { error: "Time entry not found" },
         { status: 404 }
       );
+    }
+
+    // Enforce access restrictions
+    if (!isProjectAccessible(access, entry.projectId)) {
+      return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
     }
 
     // Soft delete

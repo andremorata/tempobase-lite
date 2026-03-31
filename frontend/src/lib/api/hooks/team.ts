@@ -63,3 +63,23 @@ export function useRemoveTeamMember() {
     onSuccess: () => qc.invalidateQueries({ queryKey: TEAM_MEMBERS_KEY }),
   });
 }
+
+export function useSetMemberAccess() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      memberId,
+      projectIds,
+      taskIds,
+    }: {
+      memberId: string;
+      projectIds: string[];
+      taskIds: string[];
+    }) =>
+      apiFetch<void>(`/team/members/${memberId}/access`, {
+        method: "PUT",
+        body: { projectIds, taskIds },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: TEAM_MEMBERS_KEY }),
+  });
+}

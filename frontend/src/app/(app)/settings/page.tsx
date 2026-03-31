@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArchiveX, Copy, Download, KeyRound, Link2, Shield, Trash2, UserRound, Users } from "lucide-react";
+import { ArchiveX, ChevronDown, Copy, Download, FolderOpen, KeyRound, Link2, ListTodo, Shield, Trash2, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,9 +12,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -23,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import {
   useAccount,
@@ -41,10 +54,12 @@ import {
   useInvites,
   useRemoveTeamMember,
   useRevokeInvite,
+  useSetMemberAccess,
   useTeamMembers,
   useUpdateTeamMember,
 } from "@/lib/api/hooks/team";
 import { getApiErrorMessage } from "@/lib/api/client";
+import type { TeamMember } from "@/lib/api/types";
 
 const TIMEZONES = [
   "UTC",
@@ -87,6 +102,11 @@ interface ProfileDraft {
   showAuditMetadata: boolean;
 }
 
+interface MemberAccess {
+  projectIds: string[];
+  taskIds: string[];
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const { user, updateUser, logout } = useAuth();
@@ -102,13 +122,6 @@ export default function SettingsPage() {
   const deleteWorkspace = useDeleteWorkspace();
   const exportAccount = useExportAccount();
   const purgeTimeEntries = usePurgeTimeEntries();
-  const { data: teamMembers, isLoading: isTeamLoading } = useTeamMembers();
-  const { data: invites, isLoading: isInvitesLoading } = useInvites(isAccountAdmin);
-  const { data: projects } = useProjects();
-  const createInvite = useCreateInvite();
-  const revokeInvite = useRevokeInvite();
-  const updateTeamMember = useUpdateTeamMember();
-  const removeTeamMember = useRemoveTeamMember();
 
   const [accountDraft, setAccountDraft] = useState<AccountDraft | null>(null);
   const [profileDraft, setProfileDraft] = useState<ProfileDraft | null>(null);
@@ -117,12 +130,22 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [memberRoleDrafts, setMemberRoleDrafts] = useState<Record<string, string>>({});
   const [memberAmountDrafts, setMemberAmountDrafts] = useState<Record<string, boolean>>({});
+  const [memberAccessDrafts, setMemberAccessDrafts] = useState<Record<string, MemberAccess>>({});
   const [purgeFrom, setPurgeFrom] = useState("");
   const [purgeTo, setPurgeTo] = useState("");
   const [selfDeletePassword, setSelfDeletePassword] = useState("");
   const [selfDeleteConfirmation, setSelfDeleteConfirmation] = useState("");
   const [workspaceDeletePassword, setWorkspaceDeletePassword] = useState("");
   const [workspaceDeleteConfirmation, setWorkspaceDeleteConfirmation] = useState("");
+
+  const { data: teamMembers, isLoading: isTeamLoading } = useTeamMembers();
+  const { data: invites, isLoading: isInvitesLoading } = useInvites(isAccountAdmin);
+  const { data: projects } = useProjects();
+  const createInvite = useCreateInvite();
+  const revokeInvite = useRevokeInvite();
+  const updateTeamMember = useUpdateTeamMember();
+  const removeTeamMember = useRemoveTeamMember();
+  const setMemberAccess = useSetMemberAccess();
 
   const accountName = accountDraft?.name ?? account?.name ?? "";
   const timezone = accountDraft?.timezone ?? account?.timezone ?? "UTC";
@@ -134,6 +157,24 @@ export default function SettingsPage() {
   const defaultProjectId = profileDraft?.defaultProjectId ?? profile?.defaultProjectId ?? null;
   const showAuditMetadata = profileDraft?.showAuditMetadata ?? profile?.showAuditMetadata ?? true;
   const activeProjects = (projects ?? []).filter((project) => project.status === "Active");
+
+  const allTasks = useMemo(
+    () =>
+      (projects ?? []).flatMap((p) =>
+        (p.tasks ?? []).map((t) => ({
+          ...t,
+          projectName: p.name,
+          projectColor: p.color,
+        }))
+      ),
+    [projects]
+  );
+
+  const getMemberAccess = (member: TeamMember): MemberAccess =>
+    memberAccessDrafts[member.id] ?? {
+      projectIds: member.allowedProjectIds,
+      taskIds: member.allowedTaskIds,
+    };
 
   const updateAccountDraft = (patch: Partial<AccountDraft>) => {
     setAccountDraft((current) => ({
@@ -281,6 +322,36 @@ export default function SettingsPage() {
       });
       showErrorToast("Could not update amount visibility.", error, "Failed to update amount visibility.");
     }
+  };
+
+  const handleAccessChange = async (memberId: string, projectIds: string[], taskIds: string[]) => {
+    setMemberAccessDrafts((prev) => ({ ...prev, [memberId]: { projectIds, taskIds } }));
+    try {
+      await setMemberAccess.mutateAsync({ memberId, projectIds, taskIds });
+    } catch (error) {
+      setMemberAccessDrafts((prev) => {
+        const next = { ...prev };
+        delete next[memberId];
+        return next;
+      });
+      showErrorToast("Could not update member access.", error, "Failed to update member access.");
+    }
+  };
+
+  const toggleMemberProject = (member: TeamMember, projectId: string) => {
+    const current = getMemberAccess(member);
+    const projectIds = current.projectIds.includes(projectId)
+      ? current.projectIds.filter((id) => id !== projectId)
+      : [...current.projectIds, projectId];
+    void handleAccessChange(member.id, projectIds, current.taskIds);
+  };
+
+  const toggleMemberTask = (member: TeamMember, taskId: string) => {
+    const current = getMemberAccess(member);
+    const taskIds = current.taskIds.includes(taskId)
+      ? current.taskIds.filter((id) => id !== taskId)
+      : [...current.taskIds, taskId];
+    void handleAccessChange(member.id, current.projectIds, taskIds);
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -534,7 +605,7 @@ export default function SettingsPage() {
               <Input id="email-address" value={profile?.email ?? user?.email ?? ""} disabled />
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/30 p-4 md:col-span-2">
+            <div data-testid="profile-audit-metadata" className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/30 p-4 md:col-span-2">
               <div className="space-y-1">
                 <Label htmlFor="show-audit-metadata">Show audit field changes</Label>
                 <p className="text-sm text-muted-foreground">
@@ -717,6 +788,99 @@ export default function SettingsPage() {
                                 (user?.role === "Admin" && member.role === "Admin")
                               }
                             />
+                          </div>
+
+                          <div className="rounded-lg border border-border/60 px-3 py-2 space-y-2">
+                            <div className="space-y-0.5">
+                              <p className="text-sm font-medium">Project &amp; task access</p>
+                              <p className="text-xs text-muted-foreground">
+                                Restrict which projects and tasks this member can interact with. Empty means full access.
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {/* Project multi-select */}
+                              <Popover>
+                                <PopoverTrigger
+                                  className={cn(
+                                    buttonVariants({ variant: "outline", size: "sm" }),
+                                    "gap-1.5 h-8"
+                                  )}
+                                >
+                                  <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                                  {getMemberAccess(member).projectIds.length === 0
+                                    ? "All projects"
+                                    : getMemberAccess(member).projectIds.length === 1
+                                      ? "1 project"
+                                      : `${getMemberAccess(member).projectIds.length} projects`}
+                                  <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                </PopoverTrigger>
+                                <PopoverContent side="bottom" align="start" className="w-64 p-0">
+                                  <Command>
+                                    <CommandInput placeholder="Search projects…" />
+                                    <CommandList>
+                                      <CommandEmpty>No projects found.</CommandEmpty>
+                                      {(projects ?? []).map((p) => (
+                                        <CommandItem
+                                          key={p.id}
+                                          value={p.name}
+                                          data-checked={getMemberAccess(member).projectIds.includes(p.id)}
+                                          onSelect={() => toggleMemberProject(member, p.id)}
+                                        >
+                                          <span
+                                            className="h-2 w-2 shrink-0 rounded-full"
+                                            style={{ background: p.color }}
+                                          />
+                                          {p.name}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+
+                              {/* Task multi-select */}
+                              <Popover>
+                                <PopoverTrigger
+                                  className={cn(
+                                    buttonVariants({ variant: "outline", size: "sm" }),
+                                    "gap-1.5 h-8"
+                                  )}
+                                >
+                                  <ListTodo className="h-3.5 w-3.5 shrink-0" />
+                                  {getMemberAccess(member).taskIds.length === 0
+                                    ? "All tasks"
+                                    : getMemberAccess(member).taskIds.length === 1
+                                      ? "1 task"
+                                      : `${getMemberAccess(member).taskIds.length} tasks`}
+                                  <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                                </PopoverTrigger>
+                                <PopoverContent side="bottom" align="start" className="w-64 p-0">
+                                  <Command>
+                                    <CommandInput placeholder="Search tasks…" />
+                                    <CommandList>
+                                      <CommandEmpty>No tasks found.</CommandEmpty>
+                                      {allTasks.map((t) => (
+                                        <CommandItem
+                                          key={t.id}
+                                          value={t.name}
+                                          data-checked={getMemberAccess(member).taskIds.includes(t.id)}
+                                          onSelect={() => toggleMemberTask(member, t.id)}
+                                        >
+                                          <span
+                                            className="h-2 w-2 shrink-0 rounded-full"
+                                            style={{ background: t.projectColor ?? "#6366f1" }}
+                                          />
+                                          <span className="flex-1 truncate">{t.name}</span>
+                                          <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                                            {t.projectName}
+                                          </span>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
                           </div>
 
                           <Button

@@ -31,6 +31,12 @@ export interface UpdateClientRequest {
 export type BillingType = "Hourly" | "Fixed" | "NonBillable";
 export type ProjectStatus = "Active" | "Archived" | "Completed";
 
+export interface ProjectTaskSummary {
+  id: string;
+  name: string;
+  hourlyRate?: number | null;
+}
+
 export interface Project {
   id: string;
   accountId: string;
@@ -43,6 +49,7 @@ export interface Project {
   budgetHours?: number | null;
   createdAt: string;
   updatedAt?: string | null;
+  tasks?: ProjectTaskSummary[];
 }
 
 export interface CreateProjectRequest {
@@ -437,6 +444,8 @@ export interface TeamMember {
   isActive: boolean;
   canViewAmounts: boolean;
   createdAt: string;
+  allowedProjectIds: string[];
+  allowedTaskIds: string[];
 }
 
 export interface UpdateTeamMemberRequest {

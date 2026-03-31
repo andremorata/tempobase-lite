@@ -7,9 +7,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUserId, getCurrentUser } from "@/lib/auth/helpers";
 
 // ─── List Projects ────────────────────────────────────────────────────────
 
@@ -17,12 +18,23 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+
+    const where: Prisma.ProjectWhereInput = { accountId, isDeleted: false };
+
+    // Enforce project-level access restrictions for non-Owner/Admin users
+    if (currentUser.role !== "Owner" && currentUser.role !== "Admin") {
+      const projectAccess = await prisma.userProjectAccess.findMany({
+        where: { userId: currentUser.id, accountId },
+        select: { projectId: true },
+      });
+      if (projectAccess.length > 0) {
+        where.id = { in: projectAccess.map((a) => a.projectId) };
+      }
+    }
 
     const projects = await prisma.project.findMany({
-      where: {
-        accountId,
-        isDeleted: false,
-      },
+      where,
       include: {
         client: {
           select: {

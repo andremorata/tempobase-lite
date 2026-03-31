@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess, applyAccessFilter } from "@/lib/auth/access";
 import { toSummaryReportGroupBy } from "@/lib/reports/group-by";
 
 const summaryGroupBySchema = z.enum(["Project", "Client", "Task", "project", "client", "task"]);
@@ -29,10 +30,11 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
-    const currentUserId = await getCurrentUserId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
 
     const userPerms = await prisma.user.findUnique({
-      where: { id: currentUserId },
+      where: { id: currentUser.id },
       select: { canViewAmounts: true },
     });
     const canViewAmounts = userPerms?.canViewAmounts ?? true;
@@ -57,18 +59,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (query.projectId) {
-      where.projectId = query.projectId;
-    }
+    // Apply project/task access restrictions (intersects with any caller-supplied filters)
+    applyAccessFilter(where, access, query.projectId, query.taskId);
 
     if (query.clientId) {
       where.project = {
         clientId: query.clientId,
       };
-    }
-
-    if (query.taskId) {
-      where.taskId = query.taskId;
     }
 
     if (query.tagId) {

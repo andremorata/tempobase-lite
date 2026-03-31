@@ -10,6 +10,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { withTenant } from "@/lib/db/extensions";
 import { requireAuth, getCurrentTenantId, getCurrentUserId, getCurrentUser } from "@/lib/auth/helpers";
+import { getMemberAccess, applyAccessFilter, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
 import { createAuditLog } from "@/lib/audit/logger";
 import { mapTimeEntry } from "./mappers";
 
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const currentUser = await getCurrentUser();
+    const access = await getMemberAccess(currentUser.id, accountId, currentUser.role);
 
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = ListQuerySchema.parse(searchParams);
@@ -44,13 +47,8 @@ export async function GET(request: NextRequest) {
       where.userId = query.userId;
     }
 
-    if (query.projectId) {
-      where.projectId = query.projectId;
-    }
-
-    if (query.taskId) {
-      where.taskId = query.taskId;
-    }
+    // Apply project/task access restrictions (intersects with any caller-supplied filters)
+    applyAccessFilter(where, access, query.projectId, query.taskId);
 
     if (query.from || query.to) {
       where.entryDate = {};
@@ -114,11 +112,20 @@ export async function POST(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
-    const userId = await getCurrentUserId();
     const user = await getCurrentUser();
+    const userId = user.id;
+    const access = await getMemberAccess(userId, accountId, user.role);
 
     const body = await request.json();
     const validated = CreateTimeEntrySchema.parse(body);
+
+    // Enforce access restrictions on the selected project/task
+    if (!isProjectAccessible(access, validated.projectId)) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    if (!isTaskAccessible(access, validated.taskId)) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
 
     const startTime = new Date(validated.startTime);
     const endTime = new Date(validated.endTime);
