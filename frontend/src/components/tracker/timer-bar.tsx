@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useReducer, useRef } from "react";
+import { useState, useEffect, useCallback, useReducer, useRef, useMemo } from "react";
 import { Play, Square, Tags } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,13 @@ import {
   useRunningEntry,
   useAdjustTimerStart,
   useUpdateTimeEntry,
+  useTimeEntries,
 } from "@/lib/api/hooks/time-entries";
+import { useProjects } from "@/lib/api/hooks/projects";
+import {
+  DescriptionAutocomplete,
+  type RecentSuggestion,
+} from "@/components/tracker/description-autocomplete";
 import { useCurrentUserProfile } from "@/lib/api/hooks/account";
 import { useTags } from "@/lib/api/hooks/tags";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -44,6 +50,7 @@ type FormAction =
   | { type: "setTaskId"; value: string | null }
   | { type: "setIsBillable"; value: boolean }
   | { type: "toggleTag"; id: string }
+  | { type: "populateFromRecent"; suggestion: RecentSuggestion }
   | { type: "clear" };
 
 const initialForm: FormState = {
@@ -78,6 +85,15 @@ function formReducer(state: FormState, action: FormAction): FormState {
         tagIds: state.tagIds.includes(action.id)
           ? state.tagIds.filter((id) => id !== action.id)
           : [...state.tagIds, action.id],
+      };
+    case "populateFromRecent":
+      return {
+        ...state,
+        description: action.suggestion.description,
+        projectId: action.suggestion.projectId,
+        taskId: action.suggestion.taskId,
+        isBillable: action.suggestion.isBillable,
+        tagIds: action.suggestion.tagIds,
       };
     case "clear":
       return initialForm;
@@ -139,6 +155,8 @@ export function TimerBar() {
   const { data: runningEntry } = useRunningEntry();
   const { data: profile } = useCurrentUserProfile();
   const { data: tags } = useTags();
+  const { data: recentEntries } = useTimeEntries({ pageSize: 30 });
+  const { data: projects } = useProjects();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
   const updateEntry = useUpdateTimeEntry();
@@ -149,6 +167,30 @@ export function TimerBar() {
       description: getApiErrorMessage(error, fallback),
     });
   }, []);
+
+  const recentSuggestions = useMemo<RecentSuggestion[]>(() => {
+    if (!recentEntries) return [];
+    const seen = new Set<string>();
+    const result: RecentSuggestion[] = [];
+    for (const entry of recentEntries) {
+      if (!entry.description) continue;
+      const key = `${entry.description.toLowerCase()}||${entry.projectId ?? ""}||${entry.taskId ?? ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const project = projects?.find((p) => p.id === entry.projectId);
+      result.push({
+        description: entry.description,
+        projectId: entry.projectId ?? null,
+        taskId: entry.taskId ?? null,
+        isBillable: entry.isBillable,
+        tagIds: entry.tagIds,
+        projectName: project?.name,
+        projectColor: project?.color,
+      });
+      if (result.length >= 10) break;
+    }
+    return result;
+  }, [recentEntries, projects]);
 
   // Tick the elapsed timer — reset is in the cleanup callback, not the effect body
   useEffect(() => {
@@ -312,11 +354,30 @@ export function TimerBar() {
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <Input
+        <DescriptionAutocomplete
           placeholder="What are you working on?"
           value={form.description}
-          onChange={(e) => dispatch({ type: "setDescription", value: e.target.value })}
-          className="flex-1"
+          onChange={(v) => dispatch({ type: "setDescription", value: v })}
+          onSelect={(sug) => dispatch({ type: "populateFromRecent", suggestion: sug })}
+          onConfirm={(sug) => {
+            if (runningEntry) return;
+            justStartedRef.current = true;
+            startTimer.mutate(
+              {
+                description: sug.description || undefined,
+                projectId: sug.projectId,
+                taskId: sug.taskId,
+                isBillable: sug.isBillable,
+              },
+              {
+                onError: (err) => {
+                  justStartedRef.current = false;
+                  showMutationErrorToast("Could not start timer.", err, "Failed to start timer.");
+                },
+              },
+            );
+          }}
+          suggestions={recentSuggestions}
         />
         <ProjectSelector
           projectId={form.projectId}
