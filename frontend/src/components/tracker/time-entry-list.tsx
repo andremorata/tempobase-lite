@@ -24,6 +24,7 @@ import { useProjects } from "@/lib/api/hooks/projects";
 import { useTags } from "@/lib/api/hooks/tags";
 import { formatDuration, formatTime } from "@/lib/format";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { ProjectSelector } from "@/components/shared/project-selector";
 import { Badge } from "@/components/ui/badge";
 import { getApiErrorMessage } from "@/lib/api/client";
 import type { TimeEntry } from "@/lib/api/types";
@@ -232,6 +233,8 @@ export function TimeEntryList() {
   const [editDesc, setEditDesc] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editTagIds, setEditTagIds] = useState<string[]>([]);
+  const [editProjectId, setEditProjectId] = useState<string | null>(null);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
   const [editDuration, setEditDuration] = useState("");
@@ -272,6 +275,8 @@ export function TimeEntryList() {
     setEditingEntry(entry);
     setEditDesc(entry.description ?? "");
     setEditTagIds([...(entry.tagIds ?? [])]);
+    setEditProjectId(entry.projectId ?? null);
+    setEditTaskId(entry.taskId ?? null);
     setEditDate(
       `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`,
     );
@@ -353,8 +358,8 @@ export function TimeEntryList() {
           startTime: newStartISO,
           endTime: newEndISO,
           description: editDesc || undefined,
-          projectId: editingEntry.projectId,
-          taskId: editingEntry.taskId,
+          projectId: editProjectId,
+          taskId: editTaskId,
           isBillable: editingEntry.isBillable,
           tagIds: editTagIds,
         },
@@ -553,7 +558,7 @@ export function TimeEntryList() {
         open={!!editingEntry}
         onOpenChange={(open) => !open && setEditingEntry(null)}
       >
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit time entry</DialogTitle>
           </DialogHeader>
@@ -565,6 +570,15 @@ export function TimeEntryList() {
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
                 placeholder="What were you working on?"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Project &amp; Task</Label>
+              <ProjectSelector
+                projectId={editProjectId}
+                taskId={editTaskId}
+                onProjectChange={setEditProjectId}
+                onTaskChange={setEditTaskId}
               />
             </div>
             <div className="space-y-2">
