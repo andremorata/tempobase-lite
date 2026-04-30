@@ -9,8 +9,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/prisma";
+import type { ReportGroupByInput } from "@/lib/api/types";
 import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+
+type SharedReportFilters = {
+  from?: string | null;
+  to?: string | null;
+  projectId?: string | null;
+  clientId?: string | null;
+  taskId?: string | null;
+  tagId?: string | null;
+  billable?: boolean | null;
+  description?: string | null;
+  groupBy?: ReportGroupByInput | null;
+  showAmounts?: boolean | null;
+};
+
+function parseSharedReportFilters(filtersJson: string): Partial<SharedReportFilters> {
+  try {
+    const parsed: unknown = JSON.parse(filtersJson);
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as Partial<SharedReportFilters>;
+    }
+  } catch (error) {
+    console.error("Failed to parse filters JSON:", error);
+  }
+
+  return {};
+}
 
 const reportGroupBySchema = z.enum([
   "project",
@@ -39,7 +66,7 @@ const CreateSharedReportSchema = z.object({
   expiresAt: z.string().nullish(),
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
@@ -64,12 +91,7 @@ export async function GET(request: NextRequest) {
 
     // Parse filtersJson and extract from/to dates
     const reportsWithFilters = reports.map((report) => {
-      let filters: any = {};
-      try {
-        filters = JSON.parse(report.filtersJson);
-      } catch (error) {
-        console.error("Failed to parse filters JSON:", error);
-      }
+      const filters = parseSharedReportFilters(report.filtersJson);
 
       return {
         id: report.id,
@@ -164,12 +186,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Parse filters back for response
-    let filters: any = {};
-    try {
-      filters = JSON.parse(report.filtersJson);
-    } catch (error) {
-      console.error("Failed to parse filters JSON:", error);
-    }
+    const filters = parseSharedReportFilters(report.filtersJson);
 
     return NextResponse.json(
       {

@@ -111,6 +111,7 @@ export interface TimeEntry {
   isBillable: boolean;
   isRunning: boolean;
   tagIds: string[];
+  taskName?: string | null;
   createdAt: string;
   updatedAt?: string | null;
 }

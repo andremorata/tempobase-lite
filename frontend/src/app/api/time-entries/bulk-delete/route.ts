@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
@@ -25,17 +26,15 @@ export async function POST(request: NextRequest) {
     const validated = BulkDeleteSchema.parse(body);
 
     // Build the where clause — restrict to accessible projects if the user is scoped
-    const where: any = {
+    const where: Prisma.TimeEntryWhereInput = {
       id: { in: validated.ids },
       accountId,
       isDeleted: false,
+      ...(access.projectIds !== null ? { projectId: { in: access.projectIds } } : {}),
     };
-    if (access.projectIds !== null) {
-      where.projectId = { in: access.projectIds };
-    }
 
     // Soft delete all entries
-    const result = await prisma.timeEntry.updateMany({
+    await prisma.timeEntry.updateMany({
       where,
       data: {
         isDeleted: true,

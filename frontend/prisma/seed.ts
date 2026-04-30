@@ -146,7 +146,7 @@ async function main() {
     },
   });
 
-  const projectInternal = await prisma.project.create({
+  await prisma.project.create({
     data: {
       accountId: account.id,
       clientId: null,
@@ -180,7 +180,7 @@ async function main() {
     },
   });
 
-  const taskTesting = await prisma.projectTask.create({
+  await prisma.projectTask.create({
     data: {
       accountId: account.id,
       projectId: projectWebsite.id,
@@ -202,7 +202,7 @@ async function main() {
   console.log("✅ Created 4 tasks");
 
   // ─── Create tags ─────────────────────────────────────────────────────────
-  const tagBugfix = await prisma.tag.create({
+  await prisma.tag.create({
     data: {
       accountId: account.id,
       name: "Bugfix",
@@ -218,7 +218,7 @@ async function main() {
     },
   });
 
-  const tagMeeting = await prisma.tag.create({
+  await prisma.tag.create({
     data: {
       accountId: account.id,
       name: "Meeting",

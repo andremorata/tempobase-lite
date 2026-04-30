@@ -6,10 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { withTenant } from "@/lib/db/extensions";
-import { requireAuth, getCurrentTenantId, getCurrentUserId, getCurrentUser } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { getMemberAccess, applyAccessFilter, isProjectAccessible, isTaskAccessible } from "@/lib/auth/access";
 import { createAuditLog } from "@/lib/audit/logger";
 import { mapTimeEntry } from "./mappers";
@@ -39,9 +40,20 @@ export async function GET(request: NextRequest) {
 
     const db = withTenant(prisma, accountId);
 
-    const where: any = {
+    const entryDate: Prisma.DateTimeFilter = {};
+
+    if (query.from) {
+      entryDate.gte = new Date(query.from);
+    }
+
+    if (query.to) {
+      entryDate.lte = new Date(query.to);
+    }
+
+    const where: Prisma.TimeEntryWhereInput = {
       accountId,
       isDeleted: false,
+      ...(query.from || query.to ? { entryDate } : {}),
     };
 
     if (query.userId) {
@@ -51,16 +63,6 @@ export async function GET(request: NextRequest) {
     // Apply project/task access restrictions (intersects with any caller-supplied filters)
     applyAccessFilter(where, access, query.projectId, query.taskId);
 
-    if (query.from || query.to) {
-      where.entryDate = {};
-      if (query.from) {
-        where.entryDate.gte = new Date(query.from);
-      }
-      if (query.to) {
-        where.entryDate.lte = new Date(query.to);
-      }
-    }
-
     const entries = await db.timeEntry.findMany({
       where,
       include: {
@@ -69,6 +71,7 @@ export async function GET(request: NextRequest) {
             tag: true,
           },
         },
+        task: true,
       },
       orderBy: [
         { entryDate: "desc" },

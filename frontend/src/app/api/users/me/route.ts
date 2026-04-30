@@ -12,7 +12,7 @@ import { requireAuth, getCurrentUserId } from "@/lib/auth/helpers";
 
 // ─── Get Current User Profile ────────────────────────────────────────────
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAuth();
     const userId = await getCurrentUserId();

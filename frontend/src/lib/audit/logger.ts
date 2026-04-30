@@ -16,7 +16,7 @@ export interface AuditLogParams {
   entityType: string; // e.g., "TimeEntry", "Project", "Client", "User"
   entityId: string;
   summary: string; // Human-readable description
-  changesJson?: Record<string, any>; // Optional details about what changed
+  changesJson?: Record<string, unknown>; // Optional details about what changed
 }
 
 /**

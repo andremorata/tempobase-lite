@@ -4,6 +4,7 @@
  * GET /api/reports/detailed - Get detailed time entry list
  */
 
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
@@ -41,20 +42,21 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = QuerySchema.parse(searchParams);
 
-    const where: any = {
+    const where: Prisma.TimeEntryWhereInput = {
       accountId,
       isRunning: false,
       isDeleted: false,
     };
 
     if (query.from || query.to) {
-      where.entryDate = {};
+      const entryDate: Prisma.DateTimeFilter = {};
       if (query.from) {
-        where.entryDate.gte = new Date(query.from);
+        entryDate.gte = new Date(query.from);
       }
       if (query.to) {
-        where.entryDate.lte = new Date(query.to);
+        entryDate.lte = new Date(query.to);
       }
+      where.entryDate = entryDate;
     }
 
     // Apply project/task access restrictions (intersects with any caller-supplied filters)

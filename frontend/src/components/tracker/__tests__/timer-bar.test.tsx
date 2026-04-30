@@ -3,21 +3,28 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TimerBar } from "../timer-bar";
 
-const { mockToastError } = vi.hoisted(() => ({
+const { mockToastError, mockStartMutate, mockStopMutate, mockCancelMutate, mockUseRunningEntry } = vi.hoisted(() => ({
   mockToastError: vi.fn(),
+  mockStartMutate: vi.fn(),
+  mockStopMutate: vi.fn(),
+  mockCancelMutate: vi.fn(),
+  mockUseRunningEntry: vi.fn(),
 }));
 
 // ─── Mock all API hooks ───────────────────────────────────────────────────────
 
-const mockStartMutate = vi.fn();
-const mockStopMutate = vi.fn();
-
 vi.mock("@/lib/api/hooks/time-entries", () => ({
   useStartTimer: () => ({ mutate: mockStartMutate, isPending: false }),
   useStopTimer: () => ({ mutate: mockStopMutate, isPending: false }),
-  useRunningEntry: vi.fn(),
+  useRunningEntry: mockUseRunningEntry,
   useUpdateTimeEntry: () => ({ mutate: vi.fn(), isPending: false }),
   useAdjustTimerStart: () => ({ mutate: vi.fn(), isPending: false }),
+  useTimeEntries: () => ({ data: [] }),
+  useCancelTimer: () => ({ mutate: mockCancelMutate, isPending: false }),
+}));
+
+vi.mock("@/lib/api/hooks/account", () => ({
+  useCurrentUserProfile: () => ({ data: undefined }),
 }));
 
 vi.mock("@/lib/api/hooks/projects", () => ({
@@ -40,6 +47,29 @@ vi.mock("sonner", () => ({
 
 import { useRunningEntry } from "@/lib/api/hooks/time-entries";
 
+function makeRunningEntry(overrides: Partial<NonNullable<ReturnType<typeof useRunningEntry>["data"]>> = {}) {
+  const startTime = overrides.startTime ?? new Date().toISOString();
+
+  return {
+    id: "entry-1",
+    accountId: "acc-1",
+    userId: "user-1",
+    startTime,
+    entryDate: "2026-03-21",
+    description: null,
+    projectId: null,
+    taskId: null,
+    endTime: null,
+    duration: null,
+    isRunning: true,
+    isBillable: true,
+    tagIds: [],
+    createdAt: startTime,
+    updatedAt: startTime,
+    ...overrides,
+  };
+}
+
 // ─── Test wrapper ─────────────────────────────────────────────────────────────
 
 function makeWrapper() {
@@ -56,6 +86,7 @@ function makeWrapper() {
 describe("TimerBar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseRunningEntry.mockReturnValue({ data: undefined });
   });
 
   it("shows play button when no timer is running", () => {
@@ -75,21 +106,12 @@ describe("TimerBar", () => {
     const startTime = new Date(Date.now() - 90 * 1000).toISOString(); // 1m30s ago
 
     vi.mocked(useRunningEntry).mockReturnValue({
-      data: {
-        id: "entry-1",
-        accountId: "acc-1",
-        userId: "user-1",
-        startTime,
-        entryDate: "2026-03-21",
-        isRunning: true,
-        isBillable: true,
-        tagIds: [],
-        createdAt: startTime,
-      },
+      data: makeRunningEntry({ startTime }),
     } as ReturnType<typeof useRunningEntry>);
 
     render(<TimerBar />, { wrapper: makeWrapper() });
 
+    expect(screen.getByTitle("Cancelar tracking")).toBeDefined();
     expect(screen.getByTitle("Stop timer (Ctrl+Shift+S)")).toBeDefined();
     expect(screen.queryByTitle("Start timer (Ctrl+Shift+S)")).toBeNull();
     // Elapsed timer is shown in green
@@ -120,17 +142,7 @@ describe("TimerBar", () => {
     const startTime = new Date().toISOString();
 
     vi.mocked(useRunningEntry).mockReturnValue({
-      data: {
-        id: "entry-2",
-        accountId: "acc-1",
-        userId: "user-1",
-        startTime,
-        entryDate: "2026-03-21",
-        isRunning: true,
-        isBillable: true,
-        tagIds: [],
-        createdAt: startTime,
-      },
+      data: makeRunningEntry({ id: "entry-2", startTime }),
     } as ReturnType<typeof useRunningEntry>);
 
     render(<TimerBar />, { wrapper: makeWrapper() });
@@ -139,6 +151,26 @@ describe("TimerBar", () => {
     fireEvent.click(stopBtn);
 
     expect(mockStopMutate).toHaveBeenCalledOnce();
+  });
+
+  it("calls cancelTimer.mutate with the running entry id when cancel is confirmed", () => {
+    vi.mocked(useRunningEntry).mockReturnValue({
+      data: makeRunningEntry({ id: "entry-cancel" }),
+    } as ReturnType<typeof useRunningEntry>);
+
+    render(<TimerBar />, { wrapper: makeWrapper() });
+
+    fireEvent.click(screen.getByTitle("Cancelar tracking"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar tracking" }));
+
+    expect(mockCancelMutate).toHaveBeenCalledOnce();
+    expect(mockCancelMutate).toHaveBeenCalledWith(
+      "entry-cancel",
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
   });
 
   it("description input is editable when no timer is running", () => {

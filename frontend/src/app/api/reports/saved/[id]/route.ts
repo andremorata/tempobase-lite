@@ -8,8 +8,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import type { ReportGroupByInput } from "@/lib/api/types";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
 import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+
+type SavedReportFilters = {
+  from?: string | null;
+  to?: string | null;
+  projectId?: string | null;
+  clientId?: string | null;
+  taskId?: string | null;
+  tagId?: string | null;
+  billable?: boolean | null;
+  description?: string | null;
+  groupBy?: ReportGroupByInput | null;
+  preset?: string | null;
+};
+
+function parseSavedReportFilters(filtersJson: string): Partial<SavedReportFilters> {
+  try {
+    const parsed: unknown = JSON.parse(filtersJson);
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as Partial<SavedReportFilters>;
+    }
+  } catch (error) {
+    console.error("Failed to parse filters JSON:", error);
+  }
+
+  return {};
+}
 
 const reportGroupBySchema = z.enum([
   "project",
@@ -96,12 +123,7 @@ export async function PUT(
     });
 
     // Parse filters back for response
-    let filters: any = {};
-    try {
-      filters = JSON.parse(report.filtersJson);
-    } catch (error) {
-      console.error("Failed to parse filters JSON:", error);
-    }
+    const filters = parseSavedReportFilters(report.filtersJson);
 
     return NextResponse.json({
       id: report.id,
@@ -138,7 +160,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

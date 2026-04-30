@@ -4,14 +4,14 @@
  * POST /api/time-entries/stop
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { createAuditLog } from "@/lib/audit/logger";
 import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "../audit";
 import { mapTimeEntry } from "../mappers";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();

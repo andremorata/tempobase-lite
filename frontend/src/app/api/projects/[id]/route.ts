@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
@@ -16,7 +17,7 @@ const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   color: z.string().max(20).nullable().optional(),
   clientId: z.string().uuid().nullable().optional(),
-  status: z.enum(["Active", "Archived", "Completed"]).optional(),
+  status: z.enum(["Active", "Archived"]).optional(),
   billingType: z.enum(["Hourly", "Fixed", "NonBillable"]).optional(),
   hourlyRate: z.number().min(0).nullable().optional(),
   budgetHours: z.number().min(0).nullable().optional(),
@@ -122,7 +123,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = {
+    const updateData: Prisma.ProjectUncheckedUpdateInput = {
       updatedAt: new Date(),
     };
 
@@ -130,7 +131,7 @@ export async function PUT(
       updateData.name = validated.name;
     }
     if (validated.color !== undefined) {
-      updateData.color = validated.color;
+      updateData.color = validated.color ?? existingProject.color;
     }
     if (validated.clientId !== undefined) {
       updateData.clientId = validated.clientId;

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
@@ -26,14 +27,12 @@ export async function PUT(request: NextRequest) {
     const validated = BulkTagSchema.parse(body);
 
     // Verify all entries belong to this account, scoped to accessible projects
-    const entryWhere: any = {
+    const entryWhere: Prisma.TimeEntryWhereInput = {
       id: { in: validated.entryIds },
       accountId,
       isDeleted: false,
+      ...(access.projectIds !== null ? { projectId: { in: access.projectIds } } : {}),
     };
-    if (access.projectIds !== null) {
-      entryWhere.projectId = { in: access.projectIds };
-    }
 
     const entries = await prisma.timeEntry.findMany({
       where: entryWhere,

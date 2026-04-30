@@ -5,9 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
+import { getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
 
 const PurgeTimeEntriesSchema = z.object({
   from: z.string().optional(),
@@ -22,20 +23,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = PurgeTimeEntriesSchema.parse(body);
 
-    const where: any = {
+    const entryDate: Prisma.DateTimeFilter = {};
+
+    if (validated.from) {
+      entryDate.gte = new Date(validated.from);
+    }
+
+    if (validated.to) {
+      entryDate.lte = new Date(validated.to);
+    }
+
+    const where: Prisma.TimeEntryWhereInput = {
       accountId,
       isDeleted: false,
+      ...(validated.from || validated.to ? { entryDate } : {}),
     };
-
-    if (validated.from || validated.to) {
-      where.entryDate = {};
-      if (validated.from) {
-        where.entryDate.gte = new Date(validated.from);
-      }
-      if (validated.to) {
-        where.entryDate.lte = new Date(validated.to);
-      }
-    }
 
     // Soft delete time entries
     const result = await prisma.timeEntry.updateMany({

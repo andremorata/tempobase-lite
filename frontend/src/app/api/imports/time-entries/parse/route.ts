@@ -11,6 +11,21 @@ import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
 
 const DateFormatSchema = z.enum(["ymd", "dmy", "mdy"]).default("ymd");
 
+type ParsedImportRow = {
+  rowIndex: number;
+  rawClientName: string | null;
+  rawProjectName: string | null;
+  rawTaskName: string | null;
+  description: string | null;
+  isBillable: boolean;
+  startTime: string;
+  endTime: string;
+  durationDecimal: number;
+  suggestedProjectId: string | null;
+  suggestedTaskId: string | null;
+  errors: string[];
+};
+
 export async function POST(request: NextRequest) {
   try {
     await requireAuth();
@@ -94,7 +109,7 @@ export async function POST(request: NextRequest) {
       projectByName.set(key, proj);
     }
 
-    const rows: any[] = [];
+    const rows: ParsedImportRow[] = [];
     const parseErrors: string[] = [];
 
     // Parse data rows
@@ -298,7 +313,7 @@ function tryParseDateTime(
   ];
 
   for (const format of formats) {
-    const parsed = parseWithFormat(combined, format, dateFormat);
+    const parsed = parseWithFormat(combined, format);
     if (parsed) {
       return { success: true, value: parsed };
     }
@@ -307,7 +322,7 @@ function tryParseDateTime(
   return { success: false };
 }
 
-function parseWithFormat(dateStr: string, format: string, _dateFormat: "ymd" | "dmy" | "mdy"): Date | null {
+function parseWithFormat(dateStr: string, format: string): Date | null {
   try {
     // Split all separators (space, slash, dash, colon) into numeric parts
     const parts = dateStr.split(/[\s/:\-]+/);

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
@@ -121,7 +122,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = {
+    const updateData: Prisma.ProjectTaskUpdateInput = {
       updatedAt: new Date(),
     };
 

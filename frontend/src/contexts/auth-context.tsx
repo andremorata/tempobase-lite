@@ -1,9 +1,9 @@
 "use client";
 
 import {
+  useCallback,
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -73,6 +73,11 @@ interface AuthContextValue {
   updateUser: (payload: Partial<Pick<AuthUser, "firstName" | "lastName">>) => void;
 }
 
+interface UserOverrideState {
+  sessionUserId: string | null;
+  values: Partial<Pick<AuthUser, "firstName" | "lastName">>;
+}
+
 // ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,13 +86,21 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const [userOverrides, setUserOverrides] = useState<Partial<Pick<AuthUser, "firstName" | "lastName">>>({});
+  const sessionUser = useMemo(() => sessionUserToAuthUser(session?.user), [session?.user]);
+  const sessionUserId = sessionUser?.id ?? null;
+  const [userOverrides, setUserOverrides] = useState<UserOverrideState>({
+    sessionUserId,
+    values: {},
+  });
 
-  useEffect(() => {
-    setUserOverrides({});
-  }, [session?.user?.id]);
+  if (userOverrides.sessionUserId !== sessionUserId) {
+    setUserOverrides({
+      sessionUserId,
+      values: {},
+    });
+  }
 
-  const login = async (payload: LoginPayload) => {
+  const login = useCallback(async (payload: LoginPayload) => {
     const result = await nextAuthSignIn("credentials", {
       email: payload.email,
       password: payload.password,
@@ -97,43 +110,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!result || result.error) {
       throw new ApiError(401, "Unauthorized");
     }
-  };
+  }, []);
 
-  const register = async (payload: RegisterPayload) => {
+  const register = useCallback(async (payload: RegisterPayload) => {
     await apiFetch<{ message: string; userId: string; accountId: string }>("/auth/register", {
       method: "POST",
       body: payload,
       skipAuth: true,
     });
     await login({ email: payload.email, password: payload.password });
-  };
+  }, [login]);
 
-  const registerViaInvite = async (payload: InviteRegisterPayload) => {
+  const registerViaInvite = useCallback(async (payload: InviteRegisterPayload) => {
     await apiFetch<{ message: string; userId: string; accountId: string }>("/auth/register-invite", {
       method: "POST",
       body: payload,
       skipAuth: true,
     });
     await login({ email: payload.email, password: payload.password });
-  };
+  }, [login]);
 
-  const logout = async () => {
-    setUserOverrides({});
+  const logout = useCallback(async () => {
+    setUserOverrides({
+      sessionUserId: null,
+      values: {},
+    });
     await nextAuthSignOut({ redirect: false });
 
     if (typeof window !== "undefined") {
       window.location.assign("/login");
     }
-  };
+  }, []);
 
-  const updateUser = (payload: Partial<Pick<AuthUser, "firstName" | "lastName">>) => {
-    setUserOverrides((current) => ({ ...current, ...payload }));
-  };
+  const updateUser = useCallback((payload: Partial<Pick<AuthUser, "firstName" | "lastName">>) => {
+    setUserOverrides((current) => ({
+      sessionUserId,
+      values: {
+        ...(current.sessionUserId === sessionUserId ? current.values : {}),
+        ...payload,
+      },
+    }));
+  }, [sessionUserId]);
 
   const user = useMemo(() => {
-    const sessionUser = sessionUserToAuthUser(session?.user);
-    return sessionUser ? { ...sessionUser, ...userOverrides } : null;
-  }, [session?.user, userOverrides]);
+    return sessionUser
+      ? {
+          ...sessionUser,
+          ...(userOverrides.sessionUserId === sessionUser.id ? userOverrides.values : {}),
+        }
+      : null;
+  }, [sessionUser, userOverrides]);
 
   const isLoading = status === "loading";
 

@@ -4,6 +4,7 @@
  * GET /api/reports/summary - Get aggregated time summary
  */
 
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
@@ -13,6 +14,16 @@ import { getMemberAccess, applyAccessFilter } from "@/lib/auth/access";
 import { toSummaryReportGroupBy } from "@/lib/reports/group-by";
 
 const summaryGroupBySchema = z.enum(["Project", "Client", "Task", "project", "client", "task"]);
+
+type SummaryGroupAggregate = {
+  groupId: string;
+  groupName: string;
+  color: string | null;
+  totalHours: number;
+  billableHours: number;
+  billedAmount: number;
+  entryCount: number;
+};
 
 const QuerySchema = z.object({
   from: z.string().optional(),
@@ -43,20 +54,21 @@ export async function GET(request: NextRequest) {
     const query = QuerySchema.parse(searchParams);
     const groupBy = toSummaryReportGroupBy(query.groupBy);
 
-    const where: any = {
+    const where: Prisma.TimeEntryWhereInput = {
       accountId,
       isRunning: false,
       isDeleted: false,
     };
 
     if (query.from || query.to) {
-      where.entryDate = {};
+      const entryDate: Prisma.DateTimeFilter = {};
       if (query.from) {
-        where.entryDate.gte = new Date(query.from);
+        entryDate.gte = new Date(query.from);
       }
       if (query.to) {
-        where.entryDate.lte = new Date(query.to);
+        entryDate.lte = new Date(query.to);
       }
+      where.entryDate = entryDate;
     }
 
     // Apply project/task access restrictions (intersects with any caller-supplied filters)
@@ -115,7 +127,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Group and aggregate
-    const groups = new Map<string, any>();
+    const groups = new Map<string, SummaryGroupAggregate>();
 
     for (const entry of entries) {
       let groupKey = "";
@@ -142,8 +154,10 @@ export async function GET(request: NextRequest) {
           color = entry.project?.color || null;
       }
 
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, {
+      let group = groups.get(groupKey);
+
+      if (!group) {
+        group = {
           groupId: groupKey,
           groupName,
           color,
@@ -151,10 +165,10 @@ export async function GET(request: NextRequest) {
           billableHours: 0,
           billedAmount: 0,
           entryCount: 0,
-        });
+        };
+        groups.set(groupKey, group);
       }
 
-      const group = groups.get(groupKey);
       const hours = toNumber(entry.durationDecimal);
 
       group.totalHours += hours;

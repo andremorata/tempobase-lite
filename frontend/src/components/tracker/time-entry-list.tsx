@@ -422,6 +422,9 @@ export function TimeEntryList() {
                               </span>
                             )}
                           </p>
+                          {entry.taskName && (
+                            <p className="text-xs text-muted-foreground truncate">{entry.taskName}</p>
+                          )}
                           {entry.tagIds && entry.tagIds.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {entry.tagIds.map((tid) => {

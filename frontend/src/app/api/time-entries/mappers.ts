@@ -4,10 +4,11 @@
  * Maps Prisma TimeEntry records to the frontend TimeEntry interface contract
  */
 
-import { TimeEntry as PrismaTimeEntry, TimeEntryTag, Tag } from "@prisma/client";
+import { TimeEntry as PrismaTimeEntry, TimeEntryTag, Tag, ProjectTask } from "@prisma/client";
 
 type PrismaTimeEntryWithTags = PrismaTimeEntry & {
   tags: (TimeEntryTag & { tag: Tag })[];
+  task?: ProjectTask | null;
 };
 
 /**
@@ -30,6 +31,7 @@ export function mapTimeEntry(entry: PrismaTimeEntryWithTags) {
     isBillable: entry.isBillable,
     isRunning: entry.isRunning,
     tagIds: entry.tags.map((tt) => tt.tagId),
+    taskName: entry.task?.name ?? null,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
   };

@@ -5,7 +5,7 @@
  * Mirrors the behavior of EF Core's global query filters.
  */
 
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 /**
  * Tenant-scoped Prisma client extension

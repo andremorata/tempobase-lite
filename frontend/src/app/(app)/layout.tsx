@@ -5,18 +5,19 @@ import {
   DevBannerStrip,
   DevBannerToggle,
 } from "@/components/layout/dev-banner";
+import { FaviconUpdater } from "@/components/layout/favicon-updater";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <SidebarProvider>
+        <FaviconUpdater />
         <AppSidebar />
         <SidebarInset>
           <DevBannerProvider>

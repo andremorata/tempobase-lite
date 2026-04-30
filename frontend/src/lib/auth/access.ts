@@ -5,6 +5,7 @@
  * Results are used as Prisma where-clause filters across all data-fetching routes.
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
 export interface MemberAccess {
@@ -54,7 +55,7 @@ export async function getMemberAccess(
  * yield zero results rather than leaking data.
  */
 export function applyAccessFilter(
-  where: Record<string, any>,
+  where: Prisma.TimeEntryWhereInput,
   access: MemberAccess,
   queryProjectId?: string,
   queryTaskId?: string,

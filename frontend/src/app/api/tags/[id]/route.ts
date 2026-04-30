@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
@@ -87,7 +88,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = {
+    const updateData: Prisma.TagUpdateInput = {
       updatedAt: new Date(),
     };
 

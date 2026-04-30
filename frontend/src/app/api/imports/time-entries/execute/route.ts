@@ -89,11 +89,11 @@ export async function POST(request: NextRequest) {
         });
 
         imported++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Import row ${row.rowIndex} error:`, error);
         errors.push({
           rowIndex: row.rowIndex,
-          message: error.message || "Failed to create time entry",
+          message: error instanceof Error ? error.message : "Failed to create time entry",
         });
       }
     }

@@ -3,13 +3,14 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { AlertTriangle, X } from "lucide-react";
 
 const STORAGE_KEY = "tempobase-dev-banner-dismissed";
+const STORAGE_EVENT = "tempobase-dev-banner-storage-change";
 
 type DevBannerState = {
   expanded: boolean;
@@ -20,6 +21,43 @@ type DevBannerState = {
 
 const DevBannerCtx = createContext<DevBannerState | null>(null);
 
+function subscribeToDismissed(callback: () => void) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleChange = () => callback();
+  window.addEventListener("storage", handleChange);
+  window.addEventListener(STORAGE_EVENT, handleChange);
+
+  return () => {
+    window.removeEventListener("storage", handleChange);
+    window.removeEventListener(STORAGE_EVENT, handleChange);
+  };
+}
+
+function getDismissedSnapshot() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  return window.localStorage.getItem(STORAGE_KEY) === "1";
+}
+
+function setDismissedStorage(nextDismissed: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (nextDismissed) {
+    window.localStorage.setItem(STORAGE_KEY, "1");
+  } else {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+
+  window.dispatchEvent(new Event(STORAGE_EVENT));
+}
+
 function useDevBanner() {
   const ctx = useContext(DevBannerCtx);
   if (!ctx) throw new Error("useDevBanner must be used inside DevBannerProvider");
@@ -28,23 +66,21 @@ function useDevBanner() {
 
 /** Wrap the area that contains both the banner strip and the header toggle. */
 export function DevBannerProvider({ children }: { children: ReactNode }) {
-  const [expanded, setExpanded] = useState(false);
-  const [dismissed, setDismissed] = useState(true); // hidden by default until hydrated
-
-  useEffect(() => {
-    const wasDismissed = localStorage.getItem(STORAGE_KEY) === "1";
-    setDismissed(wasDismissed);
-    setExpanded(!wasDismissed);
-  }, []);
+  const dismissed = useSyncExternalStore(
+    subscribeToDismissed,
+    getDismissedSnapshot,
+    () => true,
+  );
+  const [expandedOverride, setExpandedOverride] = useState(false);
+  const expanded = !dismissed || expandedOverride;
 
   function dismiss() {
-    localStorage.setItem(STORAGE_KEY, "1");
-    setDismissed(true);
-    setExpanded(false);
+    setDismissedStorage(true);
+    setExpandedOverride(false);
   }
 
   function expand() {
-    setExpanded(true);
+    setExpandedOverride(true);
   }
 
   return (

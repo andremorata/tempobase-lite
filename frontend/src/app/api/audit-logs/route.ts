@@ -4,10 +4,11 @@
  * GET /api/audit-logs - List audit logs (Owner/Admin only)
  */
 
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
+import { getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
 
 const QuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -27,18 +28,19 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = QuerySchema.parse(searchParams);
 
-    const where: any = {
+    const where: Prisma.AuditLogWhereInput = {
       accountId,
     };
 
     if (query.from || query.to) {
-      where.createdAt = {};
+      const createdAt: Prisma.DateTimeFilter = {};
       if (query.from) {
-        where.createdAt.gte = new Date(query.from);
+        createdAt.gte = new Date(query.from);
       }
       if (query.to) {
-        where.createdAt.lte = new Date(query.to);
+        createdAt.lte = new Date(query.to);
       }
+      where.createdAt = createdAt;
     }
 
     if (query.action) {

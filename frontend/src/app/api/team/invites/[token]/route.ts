@@ -6,13 +6,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
+import { getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    void request;
     await requireOwnerOrAdmin();
     const accountId = await getCurrentTenantId();
     const { token } = await params;

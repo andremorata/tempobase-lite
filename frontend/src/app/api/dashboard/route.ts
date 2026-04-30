@@ -4,13 +4,13 @@
  * GET /api/dashboard - Get dashboard data with KPIs, charts, and recent entries
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { getMemberAccess } from "@/lib/auth/access";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();

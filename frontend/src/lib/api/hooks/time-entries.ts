@@ -129,6 +129,18 @@ export function useStopTimer() {
   });
 }
 
+export function useCancelTimer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/time-entries/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.setQueryData(RUNNING_ENTRY_KEY, null);
+      qc.invalidateQueries({ queryKey: TIME_ENTRIES_KEY });
+    },
+  });
+}
+
 export function useBulkDeleteTimeEntries() {
   const qc = useQueryClient();
   return useMutation({

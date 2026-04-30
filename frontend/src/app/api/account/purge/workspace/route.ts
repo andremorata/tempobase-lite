@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, getCurrentUserId, requireOwner } from "@/lib/auth/helpers";
+import { getCurrentTenantId, getCurrentUserId, requireOwner } from "@/lib/auth/helpers";
 
 const DeleteWorkspaceSchema = z.object({
   confirmationText: z.string().min(1),

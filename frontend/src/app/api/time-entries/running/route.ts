@@ -28,6 +28,7 @@ export async function GET() {
             tag: true,
           },
         },
+        task: true,
       },
     });
 

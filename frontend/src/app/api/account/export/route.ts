@@ -4,12 +4,12 @@
  * GET /api/account/export - Export all account data (Owner/Admin only)
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
-import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
+import { getCurrentTenantId, requireOwnerOrAdmin } from "@/lib/auth/helpers";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireOwnerOrAdmin();
     const accountId = await getCurrentTenantId();

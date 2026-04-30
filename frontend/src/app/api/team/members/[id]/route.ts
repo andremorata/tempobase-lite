@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId, requireOwnerOrAdmin, getCurrentUserId } from "@/lib/auth/helpers";
+import { getCurrentTenantId, requireOwnerOrAdmin, getCurrentUserId } from "@/lib/auth/helpers";
 
 const UpdateMemberRoleSchema = z.object({
   role: z.enum(["Owner", "Admin", "Manager", "Member", "Viewer"]).optional(),
@@ -21,6 +21,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    void request;
     await requireOwnerOrAdmin();
     const accountId = await getCurrentTenantId();
     const { id } = await params;

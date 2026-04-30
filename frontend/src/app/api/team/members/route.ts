@@ -4,11 +4,11 @@
  * GET /api/team/members - List all team members
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();

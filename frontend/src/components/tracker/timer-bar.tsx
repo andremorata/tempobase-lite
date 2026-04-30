@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useReducer, useRef, useMemo } from "react";
-import { Play, Square, Tags } from "lucide-react";
+import { Play, Square, Tags, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProjectSelector } from "@/components/shared/project-selector";
@@ -19,7 +19,9 @@ import {
   useAdjustTimerStart,
   useUpdateTimeEntry,
   useTimeEntries,
+  useCancelTimer,
 } from "@/lib/api/hooks/time-entries";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useProjects } from "@/lib/api/hooks/projects";
 import {
   DescriptionAutocomplete,
@@ -157,8 +159,11 @@ export function TimerBar() {
   const { data: tags } = useTags();
   const { data: recentEntries } = useTimeEntries({ pageSize: 30 });
   const { data: projects } = useProjects();
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
+  const cancelTimer = useCancelTimer();
   const updateEntry = useUpdateTimeEntry();
   const adjustStart = useAdjustTimerStart();
 
@@ -473,15 +478,27 @@ export function TimerBar() {
             </span>
           )}
           {isRunning ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={handleStop}
-              disabled={stopTimer.isPending}
-              title="Stop timer (Ctrl+Shift+S)"
-            >
-              <Square className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCancelConfirmOpen(true)}
+                disabled={cancelTimer.isPending}
+                title="Cancelar tracking"
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={handleStop}
+                disabled={stopTimer.isPending}
+                title="Stop timer (Ctrl+Shift+S)"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            </>
           ) : (
             <Button
               variant="default"
@@ -496,6 +513,29 @@ export function TimerBar() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onOpenChange={setCancelConfirmOpen}
+        title="Cancelar tracking?"
+        description="O tempo contado será descartado e o lançamento não será salvo."
+        confirmLabel="Cancelar tracking"
+        variant="destructive"
+        loading={cancelTimer.isPending}
+        onConfirm={() => {
+          if (!runningEntry) return;
+          cancelTimer.mutate(runningEntry.id, {
+            onSuccess: () => {
+              dispatch({ type: "clear" });
+              setCancelConfirmOpen(false);
+            },
+            onError: (err) => {
+              showMutationErrorToast("Não foi possível cancelar o tracking.", err, "Falha ao cancelar o tracking.");
+              setCancelConfirmOpen(false);
+            },
+          });
+        }}
+      />
 
       {/* Selected tags preview strip */}
       {form.tagIds.length > 0 && tags && (

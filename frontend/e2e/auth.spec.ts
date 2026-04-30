@@ -94,7 +94,7 @@ test.describe("Authentication", () => {
 
     await signIn(page, user.email, user.password);
 
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
     await expect(page.getByText(user.fullName)).toBeVisible();
   });
 

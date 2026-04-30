@@ -4,12 +4,95 @@
  * GET /api/public/reports/[token] - Get public shared report data (no auth required)
  */
 
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 
+type PublicSharedReportFilters = {
+  from?: string | null;
+  to?: string | null;
+  projectId?: string | null;
+  taskId?: string | null;
+  billable?: boolean | null;
+  showAmounts?: boolean | null;
+};
+
+type PublicDetailedReportData = {
+  entries: Array<{
+    id: string;
+    projectName: string | null;
+    projectColor: string | null;
+    taskName: string | null;
+    description: string | null;
+    entryDate: Date;
+    startTime: Date;
+    endTime: Date | null;
+    durationDecimal: number;
+    isBillable: boolean;
+    billedAmount: number | null;
+    tagNames: string[];
+  }>;
+  totalHours: number;
+  billableHours: number;
+  totalBilledAmount: number | null;
+  totalEntries: number;
+};
+
+type PublicWeeklyReportData = {
+  weeks: Array<{
+    weekStart: string;
+    weekEnd: string;
+    dayTotals: number[];
+    weekTotal: number;
+  }>;
+  grandTotal: number;
+};
+
+type PublicSummaryReportData = {
+  summary: {
+    groups: [];
+    totalHours: number;
+    billableHours: number;
+    totalBilledAmount: number;
+    totalEntries: number;
+  };
+  entries: Array<{
+    id: string;
+    projectName: string | null;
+    projectColor: string | null;
+    taskName: string | null;
+    description: string | null;
+    entryDate: string;
+    startTime: Date;
+    endTime: Date | null;
+    durationDecimal: number;
+    isBillable: boolean;
+    billedAmount: number | null;
+    tagNames: string[];
+  }>;
+};
+
+type PublicSharedReportData =
+  | PublicDetailedReportData
+  | PublicWeeklyReportData
+  | PublicSummaryReportData;
+
+function parsePublicSharedReportFilters(filtersJson: string): Partial<PublicSharedReportFilters> {
+  try {
+    const parsed: unknown = JSON.parse(filtersJson);
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as Partial<PublicSharedReportFilters>;
+    }
+  } catch (error) {
+    console.error("Failed to parse filters JSON:", error);
+  }
+
+  return {};
+}
+
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
@@ -44,28 +127,24 @@ export async function GET(
     }
 
     // Parse filters
-    let filters: any = {};
-    try {
-      filters = JSON.parse(shared.filtersJson);
-    } catch (error) {
-      console.error("Failed to parse filters JSON:", error);
-    }
+    const filters = parsePublicSharedReportFilters(shared.filtersJson);
 
     // Build base where clause
-    const where: any = {
+    const where: Prisma.TimeEntryWhereInput = {
       accountId: shared.accountId,
       isRunning: false,
       isDeleted: false,
     };
 
     if (filters.from || filters.to) {
-      where.entryDate = {};
+      const entryDate: Prisma.DateTimeFilter = {};
       if (filters.from) {
-        where.entryDate.gte = new Date(filters.from);
+        entryDate.gte = new Date(filters.from);
       }
       if (filters.to) {
-        where.entryDate.lte = new Date(filters.to);
+        entryDate.lte = new Date(filters.to);
       }
+      where.entryDate = entryDate;
     }
 
     if (filters.projectId) {
@@ -80,7 +159,7 @@ export async function GET(
       where.isBillable = filters.billable;
     }
 
-    let data: any = null;
+    let data: PublicSharedReportData | null = null;
 
     if (shared.reportType === "Detailed") {
       // Detailed report

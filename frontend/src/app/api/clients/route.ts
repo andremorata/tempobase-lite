@@ -12,7 +12,7 @@ import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
 
 // ─── List Clients ─────────────────────────────────────────────────────────
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
