@@ -59,11 +59,15 @@ describe("ImportPreviewRow", () => {
 describe("ImportParseResponse", () => {
   it("has required shape", () => {
     const response: ImportParseResponse = {
+      importSessionId: "11111111-1111-4111-8111-111111111111",
       rows: [],
       totalRows: 0,
       parseErrors: [],
+      duplicateOfImportSessionId: null,
+      previouslyImportedAt: null,
     };
 
+    expect(response.importSessionId).toBe("11111111-1111-4111-8111-111111111111");
     expect(response.totalRows).toBe(0);
     expect(response.rows).toHaveLength(0);
     expect(response.parseErrors).toHaveLength(0);
@@ -71,6 +75,7 @@ describe("ImportParseResponse", () => {
 
   it("contains rows with correct types", () => {
     const response: ImportParseResponse = {
+      importSessionId: "11111111-1111-4111-8111-111111111111",
       rows: [
         {
           rowIndex: 0,
@@ -153,6 +158,7 @@ describe("ImportRowRequest", () => {
 describe("ImportExecuteRequest", () => {
   it("wraps rows correctly", () => {
     const request: ImportExecuteRequest = {
+      importSessionId: "11111111-1111-4111-8111-111111111111",
       rows: [
         {
           rowIndex: 0,
@@ -177,6 +183,7 @@ describe("ImportExecuteRequest", () => {
       ],
     };
 
+    expect(request.importSessionId).toBe("11111111-1111-4111-8111-111111111111");
     expect(request.rows).toHaveLength(2);
     expect(request.rows[0].include).toBe(true);
     expect(request.rows[1].include).toBe(false);
@@ -189,6 +196,7 @@ describe("ImportExecuteResponse", () => {
       importedCount: 5,
       skippedCount: 1,
       errors: [],
+      skippedRows: [],
     };
 
     expect(response.importedCount).toBe(5);
@@ -202,10 +210,22 @@ describe("ImportExecuteResponse", () => {
       importedCount: 4,
       skippedCount: 0,
       errors: [err],
+      skippedRows: [],
     };
 
     expect(response.errors[0].rowIndex).toBe(3);
     expect(response.errors[0].message).toContain("start time");
+  });
+
+  it("can report duplicate-skipped rows", () => {
+    const response: ImportExecuteResponse = {
+      importedCount: 0,
+      skippedCount: 1,
+      errors: [],
+      skippedRows: [{ rowIndex: 0, message: "Entry already exists for this import row." }],
+    };
+
+    expect(response.skippedRows?.[0].message).toContain("already exists");
   });
 });
 

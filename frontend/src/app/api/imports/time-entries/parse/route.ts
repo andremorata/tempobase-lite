@@ -5,9 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
+import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 
 const DateFormatSchema = z.enum(["ymd", "dmy", "mdy"]).default("ymd");
 
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
+    const userId = await getCurrentUserId();
 
     // Parse multipart form data
     const formData = await request.formData();
@@ -47,10 +49,12 @@ export async function POST(request: NextRequest) {
 
     // Read file content
     const fileContent = await file.text();
+    const fileHash = createHash("sha256").update(fileContent, "utf8").digest("hex");
     const lines = fileContent.split(/\r?\n/).filter((line) => line.trim().length > 0);
 
     if (lines.length === 0) {
       return NextResponse.json({
+        importSessionId: null,
         rows: [],
         totalRows: 0,
         parseErrors: ["CSV file appears to be empty or has no header row."],
@@ -67,6 +71,7 @@ export async function POST(request: NextRequest) {
 
     if (missingCols.length > 0) {
       return NextResponse.json({
+        importSessionId: null,
         rows: [],
         totalRows: 0,
         parseErrors: [
@@ -75,6 +80,21 @@ export async function POST(request: NextRequest) {
         ],
       });
     }
+
+    const previousCompletedImport = await prisma.importSession.findFirst({
+      where: {
+        accountId,
+        userId,
+        fileHash,
+        dateFormat,
+        status: "completed",
+      },
+      orderBy: { completedAt: "desc" },
+      select: {
+        id: true,
+        completedAt: true,
+      },
+    });
 
     // Load projects and tasks for fuzzy matching
     const projects = await prisma.project.findMany({
@@ -205,10 +225,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const importSession = await prisma.importSession.create({
+      data: {
+        accountId,
+        userId,
+        fileName: file.name || null,
+        fileHash,
+        dateFormat,
+        status: "pending",
+        rowCount: rows.length,
+        parseErrorsJson: JSON.stringify(parseErrors),
+        previewRowsJson: JSON.stringify(rows),
+      },
+      select: { id: true },
+    });
+
     return NextResponse.json({
+      importSessionId: importSession.id,
       rows,
       totalRows: rows.length,
       parseErrors,
+      duplicateOfImportSessionId: previousCompletedImport?.id ?? null,
+      previouslyImportedAt: previousCompletedImport?.completedAt?.toISOString() ?? null,
     });
   } catch (error) {
     console.error("Parse CSV error:", error);

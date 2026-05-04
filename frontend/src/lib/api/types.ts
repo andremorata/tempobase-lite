@@ -540,9 +540,12 @@ export interface ImportPreviewRow {
 }
 
 export interface ImportParseResponse {
+  importSessionId?: string | null;
   rows: ImportPreviewRow[];
   totalRows: number;
   parseErrors: string[];
+  duplicateOfImportSessionId?: string | null;
+  previouslyImportedAt?: string | null;
 }
 
 export interface ImportRowRequest {
@@ -557,6 +560,7 @@ export interface ImportRowRequest {
 }
 
 export interface ImportExecuteRequest {
+  importSessionId: string;
   rows: ImportRowRequest[];
 }
 
@@ -569,6 +573,8 @@ export interface ImportExecuteResponse {
   importedCount: number;
   skippedCount: number;
   errors: ImportRowError[];
+  skippedRows?: ImportRowError[];
+  alreadyImported?: boolean;
 }
 
 // ─── Saved reports ───────────────────────────────────────────────────────────

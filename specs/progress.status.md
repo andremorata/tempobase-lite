@@ -6,7 +6,7 @@
 
 - **Active phase:** Phase 13 — Production Hardening
 - **Overall status:** Phase 12 cleanup is complete and Phase 13 production hardening is now in progress to resolve the current failing frontend validation sequence.
-- **Last updated:** 2026-04-30
+- **Last updated:** 2026-05-04
 - **Primary risks:** Current production-readiness signal is blocked by failing frontend validation commands. Browser-level auth-flow validation could be broader. Integration test coverage for Route Handlers can be expanded.
 
 ## Phase Board
@@ -42,6 +42,8 @@
 - **Files updated:** All `docs/*.md`, `specs/tempobase.plan.md`, `specs/phase12.issue.md`, `specs/progress.status.md`, `AGENTS.md`, `README.md`.
 
 ## Evidence Log
+
+- 2026-05-04: CSV import same-name/reimport safety fix implemented. Added `ImportSession` persistence and migration, content-hash based parse sessions, session-based execute idempotency, duplicate-row skipping, stale parse response protection in `/imports`, and focused regressions for import contracts, Route Handlers, and same-name parse ordering. Validation: `pnpm --dir frontend exec prisma validate`, `pnpm --dir frontend lint`, `pnpm --dir frontend test` (90/90), `pnpm --dir frontend run build`, and `pnpm --dir frontend test:e2e -- app.spec.ts -g "imports"` (4/4) passed.
 
 - 2026-03-31: Time-entry audit logging coverage expanded. Added audit writes for timer start, timer stop, time-entry update, and time-entry delete flows, standardized time-entry audit payloads/summaries, improved audit failure logging context, and added targeted route-level regression tests for all audited time-entry mutations.
 

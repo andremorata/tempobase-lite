@@ -113,7 +113,7 @@ interface RowState {
   errors: string[];
 }
 
-function previewToRowState(row: ImportPreviewRow): RowState {
+function previewToRowState(row: ImportPreviewRow, forceExcluded = false): RowState {
   return {
     rowIndex: row.rowIndex,
     startTime: row.startTime,
@@ -122,7 +122,7 @@ function previewToRowState(row: ImportPreviewRow): RowState {
     isBillable: row.isBillable,
     projectId: row.suggestedProjectId ?? null,
     taskId: row.suggestedTaskId ?? null,
-    include: row.errors.length === 0,
+    include: !forceExcluded && row.errors.length === 0,
     errors: row.errors,
   };
 }
@@ -249,16 +249,24 @@ function ImportRow({ row, projects, onChange }: RowProps) {
 
 export default function ImportsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const parseAttemptRef = useRef(0);
   const [rows, setRows] = useState<RowState[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [importSessionId, setImportSessionId] = useState<string | null>(null);
+  const [duplicateImport, setDuplicateImport] = useState<{
+    importSessionId: string;
+    importedAt: string | null;
+  } | null>(null);
   const [dateFormat, setDateFormat] = useState<ImportDateFormat>("ymd");
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [executeResult, setExecuteResult] = useState<{
     importedCount: number;
     skippedCount: number;
     errors: { rowIndex: number; message: string }[];
+    skippedRows?: { rowIndex: number; message: string }[];
+    alreadyImported?: boolean;
   } | null>(null);
 
   const parseMutation = useParseCsvImport();
@@ -271,16 +279,37 @@ export default function ImportsPage() {
 
   const handleFilePick = useCallback(
     async (file: File, nextDateFormat: ImportDateFormat) => {
+      const attemptId = parseAttemptRef.current + 1;
+      parseAttemptRef.current = attemptId;
+
       setSelectedFile(file);
       setFileName(file.name);
+      setImportSessionId(null);
+      setDuplicateImport(null);
       setExecuteResult(null);
+      setShowOnlyErrors(false);
       setRows([]);
       setParseErrors([]);
 
       try {
         const result = await parseMutation.mutateAsync({ file, dateFormat: nextDateFormat });
+
+        if (attemptId !== parseAttemptRef.current) {
+          return;
+        }
+
+        const isDuplicateImport = Boolean(result.duplicateOfImportSessionId);
+        setImportSessionId(result.importSessionId ?? null);
+        setDuplicateImport(
+          result.duplicateOfImportSessionId
+            ? {
+                importSessionId: result.duplicateOfImportSessionId,
+                importedAt: result.previouslyImportedAt ?? null,
+              }
+            : null,
+        );
         setParseErrors(result.parseErrors);
-        setRows(result.rows.map(previewToRowState));
+        setRows(result.rows.map((row) => previewToRowState(row, isDuplicateImport)));
 
         if (result.parseErrors.length > 0) {
           toast.error("Parsed with issues.", {
@@ -289,10 +318,21 @@ export default function ImportsPage() {
           return;
         }
 
+        if (isDuplicateImport) {
+          toast.warning("This file content was imported before.", {
+            description: "Rows were parsed from the uploaded file, but left deselected to prevent a duplicate import.",
+          });
+          return;
+        }
+
         toast.success("File parsed.", {
           description: `${result.totalRows} row${result.totalRows === 1 ? "" : "s"} ready for review.`,
         });
       } catch (error) {
+        if (attemptId !== parseAttemptRef.current) {
+          return;
+        }
+
         toast.error("Could not parse import file.", {
           description: getApiErrorMessage(error, "Failed to parse the uploaded CSV file."),
         });
@@ -304,6 +344,7 @@ export default function ImportsPage() {
   const onFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
+      e.target.value = "";
       if (file) handleFilePick(file, dateFormat);
     },
     [dateFormat, handleFilePick],
@@ -334,6 +375,11 @@ export default function ImportsPage() {
   // ── Execute ─────────────────────────────────────────────────────────────────
 
   const handleExecute = useCallback(async () => {
+    if (!importSessionId) {
+      toast.error("Parse the CSV file again before importing.");
+      return;
+    }
+
     const payload: ImportRowRequest[] = rows.map((r) => ({
       rowIndex: r.rowIndex,
       startTime: r.startTime,
@@ -346,8 +392,17 @@ export default function ImportsPage() {
     }));
 
     try {
-      const result = await executeMutation.mutateAsync({ rows: payload });
+      const result = await executeMutation.mutateAsync({ importSessionId, rows: payload });
       setExecuteResult(result);
+
+      if (result.alreadyImported) {
+        toast.warning("Import already completed.", {
+          description: "No entries were created because this import session had already been completed.",
+        });
+        setRows([]);
+        setImportSessionId(null);
+        return;
+      }
 
       if (result.errors.length > 0) {
         toast.error("Import completed with issues.", {
@@ -359,11 +414,12 @@ export default function ImportsPage() {
         });
       }
 
-      // Remove successfully imported rows (keep skipped / errored)
-      if (result.importedCount > 0) {
+      // Remove successfully imported or duplicate-skipped rows (keep user-skipped / errored)
+      if (result.importedCount > 0 || (result.skippedRows?.length ?? 0) > 0) {
         const errorIndexes = new Set(result.errors.map((e) => e.rowIndex));
+        const duplicateSkippedIndexes = new Set(result.skippedRows?.map((e) => e.rowIndex) ?? []);
         setRows((prev) =>
-          prev.filter((r) => !r.include || errorIndexes.has(r.rowIndex)),
+          prev.filter((r) => !r.include || (errorIndexes.has(r.rowIndex) && !duplicateSkippedIndexes.has(r.rowIndex))),
         );
       }
     } catch (error) {
@@ -371,7 +427,7 @@ export default function ImportsPage() {
         description: getApiErrorMessage(error, "Failed to import the selected rows."),
       });
     }
-  }, [rows, executeMutation]);
+  }, [importSessionId, rows, executeMutation]);
 
   const handleDownloadExample = () => {
     const csv = generateExampleCsv(dateFormat);
@@ -440,8 +496,16 @@ export default function ImportsPage() {
         tabIndex={0}
         aria-label="Upload CSV file"
         className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/30 p-10 text-center transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/5 cursor-pointer"
-        onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+        onClick={() => {
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          fileInputRef.current?.click();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            fileInputRef.current?.click();
+          }
+        }}
         onDrop={onDrop}
         onDragOver={(e) => e.preventDefault()}
       >
@@ -492,6 +556,23 @@ export default function ImportsPage() {
         </div>
       )}
 
+      {duplicateImport && rows.length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                This file content was imported before
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The preview below comes from the file you just uploaded, but rows were deselected to avoid importing the same entries again
+                {duplicateImport.importedAt ? ` after the previous import on ${new Date(duplicateImport.importedAt).toLocaleString()}` : ""}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Execute result */}
       {executeResult && (
         <div className={`rounded-lg border p-4 ${executeResult.errors.length > 0 ? "border-amber-500/40 bg-amber-500/5" : "border-emerald-500/40 bg-emerald-500/5"}`}>
@@ -505,6 +586,11 @@ export default function ImportsPage() {
               </p>
               {executeResult.errors.map((e) => (
                 <p key={e.rowIndex} className="mt-1 text-xs text-muted-foreground">
+                  Row {e.rowIndex + 1}: {e.message}
+                </p>
+              ))}
+              {executeResult.skippedRows?.map((e) => (
+                <p key={`skipped-${e.rowIndex}`} className="mt-1 text-xs text-muted-foreground">
                   Row {e.rowIndex + 1}: {e.message}
                 </p>
               ))}
@@ -568,7 +654,7 @@ export default function ImportsPage() {
               <Button
                 size="sm"
                 onClick={handleExecute}
-                disabled={includedCount === 0 || executeMutation.isPending}
+                disabled={includedCount === 0 || !importSessionId || executeMutation.isPending}
               >
                 {executeMutation.isPending
                   ? "Importing…"

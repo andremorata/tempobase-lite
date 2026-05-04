@@ -24,6 +24,7 @@
 | --- | --- |
 | Tenancy | `accounts`, `domain_users`, `account_invites` |
 | Time tracking | `clients`, `projects`, `project_tasks`, `time_entries`, `tags`, `time_entry_tags` |
+| Imports | `import_sessions` |
 | Reporting | `saved_reports`, `shared_reports` |
 | Audit | `audit_logs` |
 
@@ -45,6 +46,7 @@ erDiagram
   ACCOUNTS ||--o{ PROJECTS : owns
   ACCOUNTS ||--o{ PROJECT_TASKS : owns
   ACCOUNTS ||--o{ TIME_ENTRIES : owns
+  ACCOUNTS ||--o{ IMPORT_SESSIONS : tracks
   ACCOUNTS ||--o{ TAGS : owns
   ACCOUNTS ||--o{ SAVED_REPORTS : owns
   ACCOUNTS ||--o{ SHARED_REPORTS : owns
@@ -54,6 +56,8 @@ erDiagram
   PROJECTS ||--o{ PROJECT_TASKS : contains
   PROJECTS ||--o{ TIME_ENTRIES : tracks
   DOMAIN_USERS ||--o{ TIME_ENTRIES : logs
+  DOMAIN_USERS ||--o{ IMPORT_SESSIONS : starts
+  IMPORT_SESSIONS ||--o{ TIME_ENTRIES : creates
   PROJECT_TASKS ||--o{ TIME_ENTRIES : categorizes
   TIME_ENTRIES ||--o{ TIME_ENTRY_TAGS : tagged
   TAGS ||--o{ TIME_ENTRY_TAGS : applied
@@ -71,6 +75,13 @@ erDiagram
 | Audit timestamps | `created_at`, `updated_at` |
 | Rates / money | decimal / numeric fields with explicit precision |
 | Dates | Use PostgreSQL date or timestamptz types intentionally |
+
+### CSV Import Sessions
+
+- CSV imports are tracked in `import_sessions` by tenant, user, parser date format, and a SHA-256 hash of the uploaded file content.
+- `file_name` is stored only as audit/display metadata. It must not be used as the identity or lookup key for import data.
+- `preview_rows_json` preserves the parsed preview used by the execute step, and imported `time_entries` may reference the originating `import_session_id`.
+- Duplicate-content detection is scoped to completed sessions for the same account/user/date format and should warn before reimporting the same content.
 
 ## 7. Migration Strategy
 

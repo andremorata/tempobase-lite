@@ -21,8 +21,15 @@ const ImportRowSchema = z.object({
 });
 
 const ExecuteImportSchema = z.object({
+  importSessionId: z.string().uuid(),
   rows: z.array(ImportRowSchema).min(1).max(5000),
 });
+
+type StoredImportPreviewRow = {
+  rowIndex: number;
+  startTime: string;
+  endTime: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,20 +40,81 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = ExecuteImportSchema.parse(body);
 
+    const session = await prisma.importSession.findFirst({
+      where: {
+        id: validated.importSessionId,
+        accountId,
+        userId,
+      },
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Import session not found. Parse the CSV file again before importing." },
+        { status: 404 }
+      );
+    }
+
+    if (session.status === "completed") {
+      return NextResponse.json({
+        importedCount: session.importedCount,
+        skippedCount: session.skippedCount,
+        errors: [],
+        skippedRows: [],
+        alreadyImported: true,
+      });
+    }
+
+    if (session.status !== "pending") {
+      return NextResponse.json(
+        { error: "Import session is no longer pending. Parse the CSV file again before importing." },
+        { status: 409 }
+      );
+    }
+
+    let previewRows: StoredImportPreviewRow[];
+    try {
+      previewRows = JSON.parse(session.previewRowsJson) as StoredImportPreviewRow[];
+    } catch {
+      await prisma.importSession.update({
+        where: { id: session.id },
+        data: { status: "failed", failedAt: new Date(), updatedAt: new Date() },
+      });
+
+      return NextResponse.json(
+        { error: "Import session preview could not be restored. Parse the CSV file again before importing." },
+        { status: 409 }
+      );
+    }
+
+    const previewByRowIndex = new Map(previewRows.map((row) => [row.rowIndex, row]));
+
     let imported = 0;
     let skipped = 0;
     const errors: { rowIndex: number; message: string }[] = [];
+    const skippedRows: { rowIndex: number; message: string }[] = [];
 
-    // Process each row
-    for (const row of validated.rows) {
-      if (!row.include) {
-        skipped++;
-        continue;
-      }
+    await prisma.$transaction(async (tx) => {
+      for (const row of validated.rows) {
+        const previewRow = previewByRowIndex.get(row.rowIndex);
 
-      try {
+        if (!previewRow) {
+          errors.push({ rowIndex: row.rowIndex, message: "Row does not belong to the current import session." });
+          continue;
+        }
+
+        if (!row.include) {
+          skipped++;
+          continue;
+        }
+
         const startTime = new Date(row.startTime);
         const endTime = new Date(row.endTime);
+
+        if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+          errors.push({ rowIndex: row.rowIndex, message: "Start or end time is invalid." });
+          continue;
+        }
 
         // Validate time range
         if (endTime <= startTime) {
@@ -69,14 +137,42 @@ export async function POST(request: NextRequest) {
           Date.UTC(startTime.getUTCFullYear(), startTime.getUTCMonth(), startTime.getUTCDate())
         );
 
+        const description = row.description?.trim() || null;
+        const projectId = row.projectId || null;
+        const taskId = row.taskId || null;
+
+        const existingEntry = await tx.timeEntry.findFirst({
+          where: {
+            accountId,
+            userId,
+            projectId,
+            taskId,
+            description,
+            startTime,
+            endTime,
+            isBillable: row.isBillable,
+            isDeleted: false,
+          },
+          select: { id: true },
+        });
+
+        if (existingEntry) {
+          skipped++;
+          skippedRows.push({
+            rowIndex: row.rowIndex,
+            message: "Entry already exists for this import row.",
+          });
+          continue;
+        }
+
         // Create time entry
-        await prisma.timeEntry.create({
+        await tx.timeEntry.create({
           data: {
             accountId,
             userId,
-            projectId: row.projectId || null,
-            taskId: row.taskId || null,
-            description: row.description || null,
+            projectId,
+            taskId,
+            description,
             entryDate,
             startTime,
             endTime,
@@ -85,23 +181,41 @@ export async function POST(request: NextRequest) {
             isBillable: row.isBillable,
             isRunning: false,
             isDeleted: false,
+            importSessionId: session.id,
           },
         });
 
         imported++;
-      } catch (error: unknown) {
-        console.error(`Import row ${row.rowIndex} error:`, error);
-        errors.push({
-          rowIndex: row.rowIndex,
-          message: error instanceof Error ? error.message : "Failed to create time entry",
+      }
+
+      if (errors.length === 0) {
+        await tx.importSession.update({
+          where: { id: session.id },
+          data: {
+            status: "completed",
+            importedCount: imported,
+            skippedCount: skipped,
+            completedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        await tx.importSession.update({
+          where: { id: session.id },
+          data: {
+            importedCount: imported,
+            skippedCount: skipped,
+            updatedAt: new Date(),
+          },
         });
       }
-    }
+    });
 
     return NextResponse.json({
       importedCount: imported,
       skippedCount: skipped,
       errors,
+      skippedRows,
     });
   } catch (error) {
     console.error("Execute import error:", error);
