@@ -30,7 +30,7 @@
 ## 4. Suggested Structure
 
 ```text
-frontend/
+app/
 ├── src/
 │   ├── app/                 # Route Handlers and app routes under test
 │   ├── components/          # Component tests
@@ -44,4 +44,4 @@ frontend/
 
 - Run focused tests while implementing.
 - Run broader affected suites before considering work complete.
-- Record meaningful verification evidence in `specs/progress.status.md` when phase status changes.
+- Record meaningful verification evidence in the issue/PR, and update `specs/progress.status.md` when repository posture or known risks change.

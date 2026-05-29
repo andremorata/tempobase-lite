@@ -23,12 +23,12 @@
 
 | Area | Command |
 | --- | --- |
-| Install | `pnpm --dir frontend install --frozen-lockfile` |
-| Lint | `pnpm --dir frontend lint` |
-| Build | `pnpm --dir frontend run build` |
-| Unit/UI tests | `pnpm --dir frontend test` |
-| E2E tests | `pnpm --dir frontend test:e2e` |
-| Prisma generate | `pnpm --dir frontend exec prisma generate` |
+| Install | `pnpm --dir app install --frozen-lockfile` locally, or Vercel install with root directory `app` |
+| Lint | `pnpm lint` |
+| Build | `pnpm build` |
+| Unit/UI tests | `pnpm test` |
+| E2E tests | `pnpm test:e2e` |
+| Prisma generate | `pnpm prisma:generate` |
 
 ## 4. Deployment Expectations
 
@@ -44,4 +44,4 @@ The deployment path should document:
 
 - [06-infrastructure.md](06-infrastructure.md) — Deployment target and environment rules
 - [09-testing.md](09-testing.md) — Required test strategy
-- [specs/progress.status.md](../specs/progress.status.md) — Status and validation evidence
+- [specs/progress.status.md](../specs/progress.status.md) — Current validation posture and known risks

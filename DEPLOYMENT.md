@@ -29,7 +29,7 @@ Deploy TempoBase with Vercel for the app runtime and Neon for PostgreSQL.
 
 ## 2. Configure Local Environment
 
-Create `frontend/.env.local` with values like:
+Create `app/.env.local` with values like:
 
 ```env
 DATABASE_URL="postgresql://user:password@host/db?sslmode=require&pgbouncer=true"
@@ -48,7 +48,7 @@ Notes:
 ## 3. Install And Initialize
 
 ```bash
-cd frontend
+cd app
 pnpm install
 pnpm exec prisma generate
 pnpm exec prisma migrate deploy
@@ -63,7 +63,7 @@ pnpm exec prisma db seed
 ## 4. Verify Locally
 
 ```bash
-cd frontend
+cd app
 pnpm dev
 ```
 
@@ -79,7 +79,7 @@ Validate at least:
 
 1. Push the repository to GitHub.
 2. Import the repository into Vercel.
-3. Set the project root to `frontend`.
+3. Set the project root to `app`.
 4. The default build command (`pnpm run build`) already handles Prisma generation, migration deployment, and the Next.js build. No custom build command override is needed.
 
 5. Configure these environment variables in Vercel:
@@ -97,7 +97,7 @@ Validate at least:
 Since the production database already has the schema (applied via `prisma db push`), you must mark the initial migration as already applied. Run this once, using Neon credentials:
 
 ```bash
-cd frontend
+cd app
 DIRECT_DATABASE_URL="postgresql://user:password@host/db?sslmode=require" pnpm exec prisma migrate resolve --applied 20260324000000_init
 ```
 

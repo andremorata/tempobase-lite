@@ -88,7 +88,7 @@ erDiagram
 - **Production and preview deployments** use `prisma migrate deploy`, which runs automatically during the Vercel build step.
 - **Local development** uses `prisma migrate dev --name <description>` to create and apply new migrations.
 - Local throwaway environments may use `prisma db push` for fast bootstrapping, but this must never be the path to production.
-- Migration files live in `frontend/prisma/migrations/` and must be committed alongside schema changes.
+- Migration files live in `app/prisma/migrations/` and must be committed alongside schema changes.
 - Existing migration files must never be edited or deleted — the migration history is append-only.
 - Schema changes require integration coverage.
 - Seed data and test fixtures should come from Prisma helpers or test setup code.

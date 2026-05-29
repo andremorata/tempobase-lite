@@ -1,76 +1,45 @@
-# TempoBase — Progress Tracker
+# TempoBase Lite — Current Status
 
-> Source of truth for delivery status across all phases.
+This file captures the current operating posture of the repository. It is not the task tracker; GitHub Issues are the official source for active work.
 
-## Current Snapshot
+## Current Posture
 
-- **Active phase:** Phase 13 — Production Hardening
-- **Overall status:** Phase 12 cleanup is complete and Phase 13 production hardening is now in progress to resolve the current failing frontend validation sequence.
-- **Last updated:** 2026-05-04
-- **Primary risks:** Current production-readiness signal is blocked by failing frontend validation commands. Browser-level auth-flow validation could be broader. Integration test coverage for Route Handlers can be expanded.
+- **Product state:** Production-ready full-stack time tracking app.
+- **Runtime location:** `app/`.
+- **Deployment target:** Vercel with Root Directory set to `app`; Neon PostgreSQL.
+- **Work tracking:** GitHub Issues for active bugs, enhancements, hardening, and docs tasks.
+- **Historical specs:** Completed phase files live under `specs/archive/phases/` and are not active plans.
 
-## Phase Board
+## Recent Structural Changes
 
-| Phase | Scope                      | Status              | Last Updated | Evidence / Notes                                             | Next Action                    |
-| ----- | -------------------------- | ------------------- | ------------ | ------------------------------------------------------------ | ------------------------------ |
-| 0     | Project Scaffolding        | Completed (validated)| 2026-03-21   | `pnpm build` success; `docker compose up` containers healthy | —                              |
-| 1     | Documentation              | Completed (validated)| 2025-01-20   | All docs updated, phase issues created, README updated    | —                              |
-| 2     | Domain Layer & Database    | Completed (validated)| 2026-03-21   | Prisma schema with all domain models; migrations applied | —                              |
-| 3     | Auth & Multi-tenant        | Completed (validated)| 2026-03-21   | Auth.js v5 credentials auth; session cookies; login + register pages | —                              |
-| 4     | Time Tracking Backend      | Completed (validated)| 2026-03-21   | Route Handlers for Clients, Projects, Tasks, TimeEntries, Tags | —                              |
-| 5     | Time Tracking Frontend     | Completed (validated)| 2025-07-26   | All pages: tracker, timesheet, clients, projects, tags, dashboard; unit + E2E tests passing | —                              |
-| 6     | Reports & Analytics        | Completed (validated)| 2026-03-23   | Summary/Detailed/Weekly reports; Recharts charts; CSV/PDF export; shared reports | —                              |
-| 7     | CSV Data Import            | Completed (validated)| 2026-03-22   | Import endpoints; CSV parser; frontend upload + preview; tests green | —                              |
-| 8     | Dashboard & Insights       | Completed (validated)| 2026-03-22   | Dashboard endpoint; KPI cards, charts, recent entries; tests green | —                             |
-| 9     | Billing & Rates            | Completed (validated)| 2026-03-23   | Rate resolution, billing in reports/exports, task rate editing; tests green | —                              |
-| 10    | Team & User Management     | Completed (validated)| 2026-03-23   | Account settings, team admin, invites, data governance; tests green | —                              |
-| 11    | Audit Log & Settings       | Completed (validated)| 2026-03-23   | Audit entity + interceptor; audit page; settings expanded; tests green | —                              |
-| 12    | Branch Alignment & Cleanup | Completed (validated)| 2026-03-24   | Legacy backend, Azure infra, and CI/CD workflows removed. All docs and specs cleaned up. Repository is a single-stack Next.js application. | —                              |
-| 13    | Production Hardening       | In progress          | 2026-04-30   | Current repair pass opened after `p lint; p build; p test; p test:e2e` exited with code `1` in `frontend/`. No green validation has been re-established yet. | Triage the failing commands and apply targeted fixes |
+- Renamed the executable application folder from `frontend/` to `app/`.
+- Added root-level pnpm scripts that delegate to `app/`.
+- Replaced scaffold-style agent guidance with TempoBase Lite-specific instructions.
+- Added PWA manifest and app icons for installable app support.
+- Moved local phase issue files into the specs archive.
+- Added GitHub Issue templates for bugs, features, and maintenance work.
 
-## Validation Notes
+## Validation Snapshot
 
-### Phase 13 — Production Hardening (In progress)
-- **Date:** 2026-04-30
-- **Evidence:** Latest reported frontend verification sequence `p lint; p build; p test; p test:e2e` failed with exit code `1` from `E:\tempobase-lite\frontend`. `pnpm exec prisma migrate status` completed successfully, but that does not clear the frontend validation gate.
-- **Current posture:** Repair pass is active. Completion cannot be claimed until lint, build, test, and E2E validations are rerun successfully.
+Latest local checks from the repository root:
 
-### Phase 12 — Branch Alignment & Cleanup (Completed)
-- **Date:** 2026-03-24
-- **Evidence:** `backend/` directory removed. `infra/` directory removed. All `.github/workflows/` removed. `docs/12-backend.md` removed. All 11 remaining docs rewritten to remove legacy backend/Azure/branch-mode/parity language. Specs updated. README updated. AGENTS.md updated.
-- **Files removed:** `backend/` (entire directory), `infra/` (Bicep modules and deploy scripts), `.github/workflows/ci.yml`, `.github/workflows/deploy-dev.yml`, `.github/workflows/deploy-staging.yml`, `.github/workflows/deploy-prod.yml`, `docs/12-backend.md`.
-- **Files updated:** All `docs/*.md`, `specs/tempobase.plan.md`, `specs/phase12.issue.md`, `specs/progress.status.md`, `AGENTS.md`, `README.md`.
+| Check | Status | Notes |
+| --- | --- | --- |
+| `pnpm --dir app install --frozen-lockfile` | Passed | No ignored-builds warning after `onlyBuiltDependencies` config. |
+| `pnpm prisma:validate` | Passed | Prisma schema valid. |
+| `pnpm lint` | Passed | Root script delegates to app lint. |
+| `pnpm test` | Failing | One existing Settings page test cannot find the `DD/MM/YYYY` option. |
+| `pnpm build` | Not rerun in this pass | Runs `prisma migrate deploy`; requires intentional DB/migration context. |
+| `pnpm test:e2e` | Not rerun in this pass | Should be run before release readiness claims. |
 
-## Evidence Log
+## Known Follow-Ups
 
-- 2026-05-04: CSV import same-name/reimport safety fix implemented. Added `ImportSession` persistence and migration, content-hash based parse sessions, session-based execute idempotency, duplicate-row skipping, stale parse response protection in `/imports`, and focused regressions for import contracts, Route Handlers, and same-name parse ordering. Validation: `pnpm --dir frontend exec prisma validate`, `pnpm --dir frontend lint`, `pnpm --dir frontend test` (90/90), `pnpm --dir frontend run build`, and `pnpm --dir frontend test:e2e -- app.spec.ts -g "imports"` (4/4) passed.
+- Triage the failing Settings page unit test.
+- Run a deliberate final readiness gate after the current restructuring settles.
+- Create GitHub Issues for any remaining production-hardening work that should continue beyond this cleanup.
 
-- 2026-03-31: Time-entry audit logging coverage expanded. Added audit writes for timer start, timer stop, time-entry update, and time-entry delete flows, standardized time-entry audit payloads/summaries, improved audit failure logging context, and added targeted route-level regression tests for all audited time-entry mutations.
+## Notes For Agents
 
-- 2026-03-25: Shared report amount-visibility UX fix completed. In the public shared report page, the top `Billed Amount` KPI card now renders only when `showAmounts` is enabled, for both Summary and Detailed report types, preventing misleading amount display when amounts are intentionally hidden.
-
-- 2026-03-25: Reports save/share compatibility fix completed. Saved/shared report APIs now normalize legacy title-case `groupBy` payloads (`Project`, `Client`, `Task`) to persisted lowercase values, and the summary endpoint now accepts either form. Added frontend regression coverage for the normalization helpers.
-
-- 2026-03-24: Legacy backend and Azure infrastructure fully removed. Repository cleaned to single-stack Next.js application. All docs, specs, README, and AGENTS.md updated to remove legacy references. `backend/`, `infra/`, `.github/workflows/`, and `docs/12-backend.md` deleted.
-
-- 2026-03-24: Frontend Auth.js client cutover completed. Added a root `SessionProvider` composition layer, migrated `useAuth()` internals from localStorage/JWT handling to Auth.js credentials sign-in and sign-out flows, switched the shared API client and import uploads to same-origin cookie-based requests, and corrected invite registration to use `/api/auth/register-invite`. Validation: no diagnostics in touched files, targeted auth regression tests were added for login, registration, and `AuthGuard` behavior, `pnpm --dir frontend test` passed 73/73, and `pnpm --dir frontend run build` succeeded.
-
-- 2026-03-24: Documentation cleanup completed. Rewrote `docs/05-business-rules.md` and `docs/08-observability.md`, replaced `DEPLOYMENT.md` with a deployment guide, and replaced `frontend/README.md` boilerplate with application guidance.
-
-- 2026-03-24: Documentation realignment completed. Updated the master plan, Phase 12 issue, progress tracker, README, deployment docs, and core architecture/API/testing/agent workflow docs.
-
-- 2026-03-23: Phase 12 dev environment setup. Replaced auto-deploy on staging with a minimal dev environment. Created `deploy-dev.yml`.
-
-- 2026-03-23: Phase 11 Audit Log & Settings completed. Added `AuditLog` entity, migration, audit page, extended settings. Validation: frontend unit tests 66/66, Playwright 35/35, build green.
-
-- 2026-03-23: Phase 10 Team & User Management completed. Account settings, team administration, invites, data governance, export/purge. Validation: frontend unit tests, E2E tests, build green.
-
-- 2026-03-23: Phase 9 Billing & Rates completed. Rate resolution, billing in reports/exports, task rate editing. Tests green.
-
-- 2026-03-22: Phase 7 CSV Data Import completed. Import endpoints, CSV parser, frontend upload + preview. Tests green.
-
-- 2026-03-22: Phase 8 Dashboard & Insights completed. Dashboard endpoint, KPI cards, charts, recent entries. Tests green.
-
-- 2026-03-22: Phase 6 Reports & Analytics completed. Summary/Detailed/Weekly reports, Recharts charts, CSV/PDF export, shared reports. Tests green.
-
-- 2025-07-26: Phase 5 Time Tracking Frontend completed. All pages built: tracker, timesheet, clients, projects, tags, dashboard. Unit + E2E tests passing.
+- Do not treat archived phase files as active scope.
+- When work comes from a GitHub Issue, use that issue as the source of acceptance criteria.
+- Update this file only when repository posture, validation status, or known risks materially change.

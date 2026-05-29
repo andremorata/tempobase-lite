@@ -30,9 +30,10 @@ TempoBase is a full-stack Next.js application for work time tracking with projec
 # Start local PostgreSQL
 docker compose up
 
-# Run the frontend
-cd frontend
-pnpm install
+# Install app dependencies
+pnpm setup
+
+# Run the app from the repository root
 pnpm dev
 ```
 
@@ -54,10 +55,12 @@ Core documentation lives in `docs/` and `specs/`.
 - [specs/tempobase.plan.md](specs/tempobase.plan.md)
 - [specs/progress.status.md](specs/progress.status.md)
 
+Active work is tracked in GitHub Issues. Historical phase files are archived under [specs/archive/](specs/archive/).
+
 ## Testing
 
 ```bash
-pnpm --dir frontend test
-pnpm --dir frontend run build
-pnpm --dir frontend test:e2e
+pnpm test
+pnpm build
+pnpm test:e2e
 ```

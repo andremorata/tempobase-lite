@@ -3,18 +3,13 @@
 import { useEffect } from "react";
 import { useRunningEntry } from "@/lib/api/hooks/time-entries";
 
-const ACTIVE_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#059669"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-  <rect x="7" y="7.5" width="18" height="3.5" rx="1.75" fill="#fff"/>
-  <rect x="14.25" y="9" width="3.5" height="16.5" rx="1.75" fill="#fff"/>
-  <circle cx="16" cy="27" r="1.2" fill="rgba(255,255,255,0.5)"/>
-  <circle cx="27" cy="27" r="5" fill="#ef4444"/>
+const ACTIVE_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#15211b"/>
+  <g fill="none" stroke="#34d399" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="132"/>
+    <polyline points="256,176.8 256,256 308.8,282.4"/>
+  </g>
+  <circle cx="420" cy="420" r="78" fill="#ef4444" stroke="#15211b" stroke-width="20"/>
 </svg>`;
 
 function getOrCreateFaviconLink(): HTMLLinkElement {

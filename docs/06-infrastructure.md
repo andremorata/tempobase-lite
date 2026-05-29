@@ -12,7 +12,7 @@
 
 ## 2. Local Development Baseline
 
-- Next.js app from `frontend/`
+- Next.js app from `app/`
 - PostgreSQL from root `docker-compose.yml`
 - Prisma schema bootstrapped at container/app startup where configured
 

@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-`frontend/` is both the UI layer and the application backend surface.
+`app/` is both the UI layer and the application backend surface.
 
 - App Router pages deliver the UI.
 - Route Handlers under `app/api` implement backend behavior.
@@ -28,7 +28,7 @@
 ## 3. Directory Structure
 
 ```text
-frontend/
+app/
 ├── prisma/                 # Prisma schema, seeds, and DB tooling
 ├── src/
 │   ├── app/                # App Router pages and Route Handlers

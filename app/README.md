@@ -1,8 +1,8 @@
-# TempoBase Lite Frontend
+# TempoBase Lite App
 
-This package contains the active TempoBase Lite application for the `claude/create-zero-cost-deployment` branch.
+This package contains the full-stack TempoBase Lite application.
 
-## Branch Role
+## Runtime Role
 
 - UI runtime: Next.js App Router
 - Active backend surface: Route Handlers under `src/app/api`
@@ -47,9 +47,4 @@ See [../DEPLOYMENT.md](../DEPLOYMENT.md) and [../docs/06-infrastructure.md](../d
 - Use Vitest for units, hooks, and component tests.
 - Use integration-style tests for Route Handler plus Prisma behavior.
 - Use Playwright for important end-to-end flows.
-- Preserve legacy backend behavior with Lite-side coverage where that behavior still matters.
-
-## Notes
-
-- `backend/` is reference-only on this branch.
-- New product behavior should be implemented here unless the task is explicitly migration/reference work.
+- Keep product behavior covered at the lowest effective test level.

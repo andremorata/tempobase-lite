@@ -8,13 +8,15 @@ Before substantial work:
 
 1. Read `specs/tempobase.plan.md`.
 2. Read `specs/progress.status.md`.
-3. Read the relevant `specs/phaseN.issue.md`.
+3. Read the GitHub Issue or PR context when the work is issue-driven.
 4. Read the related `docs/` files.
+
+Archived phase files under `specs/archive/` are historical records. Do not treat them as active work instructions.
 
 ## 2. Implementation Rules
 
-- Implement product behavior in `frontend/`.
-- Use Route Handlers in `frontend/src/app/api/` for backend behavior.
+- Implement product behavior in `app/`.
+- Use Route Handlers in `app/src/app/api/` for backend behavior.
 - Use Prisma and supporting modules for persistence.
 - Use Auth.js as the auth model.
 
@@ -27,7 +29,7 @@ Before substantial work:
 
 During work:
 
-- stay within the current plan and phase scope,
+- stay within the current issue, PR, or user-requested scope,
 - keep business rules modular and testable,
 - prefer same-origin `/api` consumption,
 - record important decisions in docs or specs.

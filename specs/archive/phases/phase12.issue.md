@@ -42,7 +42,7 @@ Remove the legacy .NET backend and Azure infrastructure from the repository, ali
 
 ## Dependencies
 
-- `frontend/` contains the active implementation.
+- `app/` contains the active implementation.
 
 ## Validation Plan
 

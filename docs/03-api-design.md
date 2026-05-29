@@ -5,7 +5,7 @@
 ## 1. Scope
 
 - Protocol: HTTPS + JSON
-- Runtime: Next.js Route Handlers under `frontend/src/app/api/`
+- Runtime: Next.js Route Handlers under `app/src/app/api/`
 - Primary consumer: TempoBase frontend
 - Auth model: Auth.js session cookies for authenticated app requests
 

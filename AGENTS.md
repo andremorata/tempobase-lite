@@ -1,153 +1,109 @@
-# AI Project Scaffold - Copilot Instructions
+# TempoBase Lite — Agent Instructions
 
-You are working inside a reusable project scaffold intended to bootstrap new software products with AI-agent support.
+TempoBase Lite is a production-ready, full-stack time tracking application. It uses Next.js App Router for UI and backend Route Handlers, Prisma for PostgreSQL access, Auth.js for authentication, and Vercel + Neon for deployment.
 
-Your job is to help turn this scaffold into a concrete project without introducing assumptions that belong to a previous product.
+These instructions are for AI agents working in this repository. Keep changes focused, verified, and aligned with the existing product.
 
-**IMPORTANT**: AGENTS.md IS THE BASE INSTRUCTIONS FILE FOR AI AGENTS WORKING IN THIS REPOSITORY. `CLAUDE.md` AND `.github/copilot-instructions.md` ARE SYMLINKS TO THIS FILE. DO NOT EDIT THOSE FILES DIRECTLY. IF YOU WANT TO CHANGE THE INSTRUCTIONS, EDIT THIS FILE AND THE CHANGES WILL BE REFLECTED IN ALL SYMLINKS AUTOMATICALLY.
+## Project Map
 
-## Core Principles
+- `app/` — full-stack Next.js application.
+- `app/src/app/(app)/` — authenticated product pages.
+- `app/src/app/(auth)/` — login and registration pages.
+- `app/src/app/api/` — backend Route Handlers.
+- `app/src/components/` — UI components.
+- `app/src/lib/` — API clients, auth helpers, Prisma/db modules, reporting logic, utilities.
+- `app/prisma/` — Prisma schema, seed script, and migrations.
+- `app/e2e/` — Playwright tests.
+- `docs/` — architecture, database, API, frontend, infra, testing, and workflow docs.
+- `specs/` — stable product baseline, current status, and historical delivery archive.
 
-- Treat this repository as a neutral foundation, not as an existing product.
-- Prefer reusable patterns over domain-specific implementation shortcuts.
-- Document decisions clearly when a project-specific choice is made.
-- Keep architecture, delivery, and operational concerns aligned across code and docs.
-- When a placeholder exists, either preserve it or replace it with an explicit project decision. Do not invent hidden defaults.
-- Default to clean boundaries, testable code, and explicit verification.
+`AGENTS.md` is the authoritative instruction file. `CLAUDE.md` and `.github/copilot-instructions.md` should point to it; do not maintain separate copies.
 
-## Preferred Workflow
+## Core Rules
 
-1. Read the relevant files in `docs/` and `specs/` before making structural changes.
-2. Identify whether the task is scaffold-level or project-specific.
-3. Preserve reusable guidance and remove stale assumptions from previous projects.
-4. Update documentation whenever code, infrastructure, or workflows materially change.
-5. Leave the repository easier for the next human or agent to understand.
+- Treat this as the TempoBase Lite product, not a starter template.
+- Prefer existing patterns in `app/src/` over new abstractions.
+- Keep UI behavior, Route Handler contracts, Prisma access, and tests consistent with the docs.
+- Do not introduce legacy backend, Azure infra, or pre-rename path assumptions.
+- Do not change unrelated files or rewrite historical records unless asked.
+- Never revert user changes unless explicitly instructed.
 
-## Specs-Driven Execution
+## Before Substantial Work
 
-The `specs/` folder is the execution backbone of the project. Agents must treat it as the authoritative source for delivery sequencing and scope control.
+Read only the context needed for the task, but include these when the change is non-trivial:
 
-### Required files in `specs/`
+1. `specs/tempobase.plan.md`
+2. `specs/progress.status.md`
+3. The GitHub Issue or PR context when the work is issue-driven.
+4. Related docs under `docs/`
 
-- `project-template.plan.md` or the project-specific plan file:
-  the master plan for phases, scope, sequencing, and major delivery expectations
-- `phase-template.issue.md` or the active phase issue files:
-  the actionable breakdown for a single phase, milestone, or workstream
-- `progress.status.md`:
-  the source of truth for current status, validation state, evidence, and next actions
+Archived phase files under `specs/archive/` are historical only. Do not use them as active scope or acceptance criteria.
 
-### Required agent behavior
+If specs, GitHub Issues, and the user's request conflict, follow the user's current instruction and call out the mismatch.
 
-Before doing substantial work:
+## Implementation Guidance
 
-1. Read the project plan in `specs/` to understand the intended roadmap.
-2. Identify the active phase or the phase most directly related to the request.
-3. Read the corresponding phase issue file before implementing changes.
-4. Check `progress.status.md` to understand the current state, risks, and validation status.
+- UI and workflows belong in `app/src/app/`, `app/src/components/`, hooks, and supporting `app/src/lib/` modules.
+- Backend behavior belongs in `app/src/app/api/` Route Handlers.
+- Business rules should stay testable outside UI components when practical.
+- Keep tenant isolation explicit through `accountId` scoping.
+- Use Auth.js session cookies as the auth model.
+- Prefer same-origin `/api` calls from the app.
+- Use ShadCN/ui, Tailwind v4, lucide icons, TanStack Query/Table, React Hook Form, Zod, Recharts, and existing local helpers where they already fit.
+- Preserve light/dark theme support and responsive behavior.
 
-While doing the work:
+## Database And Migrations
 
-- Stay aligned with the current plan and phase scope unless the user explicitly changes direction.
-- Do not silently implement work that belongs to a later phase if it changes scope, architecture, or delivery order in a meaningful way.
-- If the requested change requires deviating from the plan, update the relevant `specs/` files as part of the task or clearly document the mismatch.
-- Keep implementation, docs, and progress tracking synchronized.
+This project uses Prisma Migrate for deployable schema changes.
 
-After completing meaningful work:
+When changing `app/prisma/schema.prisma`:
 
-- Update the relevant phase issue if scope, tasks, acceptance criteria, or notes changed.
-- Update `progress.status.md` when phase status, evidence, risks, or next actions changed.
-- Reference the plan and phase context in summaries so future agents can continue from the intended roadmap.
-
-### Precedence inside `specs/`
-
-Use this order when interpreting project intent:
-
-1. Active user instruction
-2. The project plan in `specs/`
-3. The relevant phase issue file
-4. `progress.status.md`
-
-If these conflict, do not guess silently. Align the files as part of the task or call out the mismatch clearly.
-
-## What This Scaffold Should Cover
-
-- Frontend architecture and UX delivery conventions
-- Database and persistence guidance
-- Infrastructure and environment strategy
-- CI/CD pipeline design
-- Observability and operational readiness
-- Testing strategy across layers
-- Delivery phases, progress tracking, and readiness gates
-- AI-agent collaboration rules and handoff expectations
-
-## Guardrails
-
-- Do not hardcode domain language unless the current project has explicitly chosen it.
-- Do not assume a specific stack unless documented in the active architecture decisions.
-- Do not leave orphaned references to previous systems, modules, entities, or brands.
-- Prefer templates, placeholders, checklists, and decision records when requirements are still open.
-- Do not ignore the `specs/` plan, phase, or progress files when they exist for the active project.
-
-## Documentation Expectations
-
-When creating or editing docs:
-
-- Use clear section headings and checklists.
-- Separate confirmed decisions from open questions.
-- Keep examples generic unless the repository already defines a concrete stack.
-- Note dependencies between architecture, infrastructure, testing, and delivery decisions.
-- Keep `docs/` aligned with the current phase plan and update `specs/` when documentation changes affect scope or sequencing.
-
-## Coding Expectations
-
-When source code exists:
-
-- Follow the architecture and testing rules documented for the active project.
-- Keep implementation consistent with CI/CD and observability expectations.
-- Add or update tests for behavior changes.
-- Avoid introducing tooling that conflicts with documented delivery workflows.
-- Use the active project plan and phase issue as the default boundary for what should be implemented now.
-
-Unless the project documents a different choice, assume these defaults:
-
-- Keep domain or core logic independent from framework-heavy UI code when practical.
-- Treat unit, integration, and end-to-end testing as part of the minimum delivery baseline.
-- Prefer test-driven or test-in-parallel development for non-trivial features and bug fixes.
-- Add regression tests for defects at the most appropriate level.
-
-## Database Migration Workflow
-
-This project uses **Prisma Migrate** for production database schema management. Migrations are applied automatically during Vercel builds via the `build` script (`prisma migrate deploy`).
-
-### When you change `frontend/prisma/schema.prisma`
-
-You **must** create a migration file. Never rely on `prisma db push` for changes that will be deployed.
-
-1. Make your changes to `frontend/prisma/schema.prisma`.
-2. Generate the migration:
+1. Create a new migration:
    ```bash
-   cd frontend
+   cd app
    pnpm exec prisma migrate dev --name short_description_of_change
    ```
-   This creates a new timestamped folder under `frontend/prisma/migrations/` with a `migration.sql` file and updates the local database.
-3. Commit both the schema change and the generated migration file together.
+2. Commit the schema change and generated migration together.
+3. Never use `prisma db push` as a substitute for a production migration.
 
-### Rules
+Rules:
 
-- **Never edit existing migration files** that have already been applied to production. Create a new migration instead.
-- **Never delete migration files.** The migration history is append-only.
-- **Never use `prisma db push` as a substitute for migrations** in any code path that leads to production. It does not create migration files and will cause drift.
-- **Migration names** should be short, lowercase, underscore-separated descriptions: `add_invoice_table`, `make_email_unique`, `drop_legacy_column`.
-- **Destructive changes** (dropping columns, tables, or changing types) should be called out explicitly in the PR description. Prisma will warn during `migrate dev` — do not ignore warnings about data loss.
-- **The `build` script** in `package.json` runs `prisma generate && prisma migrate deploy && next build`. Do not remove or reorder these steps.
+- Never edit or delete existing applied migrations.
+- Use short lowercase migration names, e.g. `add_invoice_table`.
+- Call out destructive schema changes clearly.
+- Keep the build script order intact: `prisma generate && prisma migrate deploy && next build`.
 
-## If the Repository Is Still in Template Mode
+## Validation Commands
 
-In template mode, optimize for:
+Run the smallest honest validation for the change. Common commands:
 
-- clarity,
-- reusability,
-- low-coupling documentation,
-- and smooth project kickoff.
+```bash
+pnpm prisma:validate
+pnpm lint
+pnpm test
+pnpm build
+pnpm test:e2e
+```
 
-Even in template mode, keep the `specs/` workflow explicit so future projects inherit a plan-first execution model.
+For focused work, run targeted tests first, then broader checks when the touched surface justifies it. If a command requires secrets or a live database, mark it blocked instead of pretending it passed.
+
+## Documentation And Specs
+
+- Update docs when behavior, architecture, deployment, validation, or workflow changes.
+- Update `specs/progress.status.md` when status, evidence, risks, or next actions change.
+- Track active work in GitHub Issues, not new local `phaseN.issue.md` files.
+- Do not rewrite archived phase files or old validation evidence unless explicitly asked.
+
+## Deployment Notes
+
+- Production target: Vercel + Neon PostgreSQL.
+- Local baseline: Docker Compose PostgreSQL plus the Next.js app in `app/`.
+- Vercel Root Directory must be `app`.
+- The production build runs Prisma generation, migration deployment, and Next.js build.
+
+## Safety
+
+- Do not print secrets from `.env*` files.
+- Do not run destructive database commands without explicit approval.
+- Do not post to GitHub, open reviews, merge PRs, or make public comments unless the user explicitly asks.
+- Prefer reversible, narrow edits and explain remaining risks when validation is incomplete.

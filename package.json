@@ -1,0 +1,20 @@
+{
+  "name": "tempobase-lite",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.2.2",
+  "scripts": {
+    "setup": "pnpm --dir app install",
+    "dev": "pnpm --dir app dev",
+    "build": "pnpm --dir app run build",
+    "start": "pnpm --dir app start",
+    "lint": "pnpm --dir app lint",
+    "test": "pnpm --dir app test",
+    "test:watch": "pnpm --dir app test:watch",
+    "test:coverage": "pnpm --dir app test:coverage",
+    "test:e2e": "pnpm --dir app test:e2e",
+    "test:e2e:ui": "pnpm --dir app test:e2e:ui",
+    "prisma:validate": "pnpm --dir app exec prisma validate",
+    "prisma:generate": "pnpm --dir app exec prisma generate"
+  }
+}
