@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "TempoBase",
     short_name: "TempoBase",
     description: "Simple, focused time tracking for your team.",
-    start_url: "/",
+    start_url: "/tracker",
     scope: "/",
     display: "standalone",
     background_color: "#15211b",
