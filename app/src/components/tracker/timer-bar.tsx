@@ -63,6 +63,9 @@ const initialForm: FormState = {
   tagIds: [],
 };
 
+const RECENT_ENTRIES_PAGE_SIZE = 120;
+const MAX_RECENT_SUGGESTIONS = 60;
+
 function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
     case "sync":
@@ -157,7 +160,7 @@ export function TimerBar() {
   const { data: runningEntry } = useRunningEntry();
   const { data: profile } = useCurrentUserProfile();
   const { data: tags } = useTags();
-  const { data: recentEntries } = useTimeEntries({ pageSize: 30 });
+  const { data: recentEntries } = useTimeEntries({ pageSize: RECENT_ENTRIES_PAGE_SIZE });
   const { data: projects } = useProjects();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
@@ -192,7 +195,7 @@ export function TimerBar() {
         projectName: project?.name,
         projectColor: project?.color,
       });
-      if (result.length >= 10) break;
+      if (result.length >= MAX_RECENT_SUGGESTIONS) break;
     }
     return result;
   }, [recentEntries, projects]);

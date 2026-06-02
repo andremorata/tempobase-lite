@@ -22,7 +22,7 @@ describe("ProjectSelector", () => {
   it("renders project names (not GUIDs) when project is selected", () => {
     vi.mocked(useProjects).mockReturnValue({
       data: mockProjects,
-    } as ReturnType<typeof useProjects>);
+    } as unknown as ReturnType<typeof useProjects>);
 
     render(
       <ProjectSelector
@@ -41,7 +41,7 @@ describe("ProjectSelector", () => {
   it("shows placeholder when no project is selected", () => {
     vi.mocked(useProjects).mockReturnValue({
       data: mockProjects,
-    } as ReturnType<typeof useProjects>);
+    } as unknown as ReturnType<typeof useProjects>);
 
     render(
       <ProjectSelector
@@ -58,7 +58,7 @@ describe("ProjectSelector", () => {
   it("only shows Active projects, not archived ones", () => {
     vi.mocked(useProjects).mockReturnValue({
       data: mockProjects,
-    } as ReturnType<typeof useProjects>);
+    } as unknown as ReturnType<typeof useProjects>);
 
     render(
       <ProjectSelector
@@ -77,7 +77,7 @@ describe("ProjectSelector", () => {
     // This documents what currently happens when the project is no longer available
     vi.mocked(useProjects).mockReturnValue({
       data: [],
-    } as ReturnType<typeof useProjects>);
+    } as unknown as ReturnType<typeof useProjects>);
 
     render(
       <ProjectSelector
