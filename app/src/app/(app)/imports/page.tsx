@@ -24,14 +24,14 @@ const DATE_FORMAT_OPTIONS: Array<{
   hint: string;
 }> = [
   {
-    value: "ymd",
-    label: "YYYY-MM-DD",
-    hint: "Use this for ISO-style exports such as 2026-03-01 09:00.",
-  },
-  {
     value: "dmy",
     label: "DD/MM/YYYY",
     hint: "Use this for day-first dates such as 01/03/2026 09:00.",
+  },
+  {
+    value: "ymd",
+    label: "YYYY-MM-DD",
+    hint: "Use this for ISO-style exports such as 2026-03-01 09:00.",
   },
   {
     value: "mdy",
@@ -252,6 +252,7 @@ export default function ImportsPage() {
   const parseAttemptRef = useRef(0);
   const [rows, setRows] = useState<RowState[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const [parseWarnings, setParseWarnings] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
@@ -259,7 +260,7 @@ export default function ImportsPage() {
     importSessionId: string;
     importedAt: string | null;
   } | null>(null);
-  const [dateFormat, setDateFormat] = useState<ImportDateFormat>("ymd");
+  const [dateFormat, setDateFormat] = useState<ImportDateFormat>("dmy");
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [executeResult, setExecuteResult] = useState<{
     importedCount: number;
@@ -290,32 +291,41 @@ export default function ImportsPage() {
       setShowOnlyErrors(false);
       setRows([]);
       setParseErrors([]);
+      setParseWarnings([]);
 
       try {
         const result = await parseMutation.mutateAsync({ file, dateFormat: nextDateFormat });
 
         if (attemptId !== parseAttemptRef.current) {
           return;
-        }
+         }
 
         const isDuplicateImport = Boolean(result.duplicateOfImportSessionId);
         setImportSessionId(result.importSessionId ?? null);
         setDuplicateImport(
           result.duplicateOfImportSessionId
-            ? {
+             ? {
                 importSessionId: result.duplicateOfImportSessionId,
                 importedAt: result.previouslyImportedAt ?? null,
-              }
-            : null,
-        );
+               }
+             : null,
+         );
         setParseErrors(result.parseErrors);
+        setParseWarnings(result.parseWarnings ?? []);
         setRows(result.rows.map((row) => previewToRowState(row, isDuplicateImport)));
+        const parseWarnings = result.parseWarnings ?? [];
 
         if (result.parseErrors.length > 0) {
           toast.error("Parsed with issues.", {
             description: result.parseErrors[0] ?? "Review the parse errors before importing rows.",
-          });
+           });
           return;
+         }
+
+        if (parseWarnings.length > 0) {
+          toast.warning("Unrecognized columns detected.", {
+            description: parseWarnings[0],
+          });
         }
 
         if (isDuplicateImport) {
@@ -555,7 +565,23 @@ export default function ImportsPage() {
           </div>
         </div>
       )}
-
+       {/* Parse-level warnings (non-blocking) */}
+       {parseWarnings.length > 0 && (
+         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
+           <div className="flex items-start gap-2">
+             <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+             <div>
+               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Unrecognized columns</p>
+               {parseWarnings.map((warn, i) => (
+                 <p key={i} className="mt-1 text-xs text-muted-foreground">{warn}</p>
+               ))}
+               <p className="mt-2 text-xs text-muted-foreground">
+                Import will proceed - columns that don&apos;t match a known field will be ignored. Fix the CSV headers and re-upload if needed.
+               </p>
+             </div>
+           </div>
+         </div>
+       )}
       {duplicateImport && rows.length > 0 && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
           <div className="flex items-start gap-2">

@@ -148,6 +148,22 @@ describe("CSV import routes", () => {
     expect(body.previouslyImportedAt).toBe("2026-04-30T12:00:00.000Z");
   });
 
+  it("surfaces unmapped headers as parse warnings without blocking row preview", async () => {
+    const csv = [
+      "Client,Project,Task,Description,Bilable,Start Date,Start Time,End Date,End Time",
+      "Acme,Website,,May work,yes,2026-04-01,09:00,2026-04-01,10:00",
+    ].join("\n");
+
+    const response = await parseImport(buildParseRequest(csv));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.rows).toHaveLength(1);
+    expect(body.parseErrors).toEqual([]);
+    expect(body.parseWarnings).toHaveLength(1);
+    expect(body.parseWarnings[0]).toContain("Bilable");
+  });
+
   it("does not execute an import session that is already completed", async () => {
     prismaMock.prisma.importSession.findFirst.mockResolvedValueOnce({
       id: importSessionId,

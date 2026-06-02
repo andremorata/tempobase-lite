@@ -544,6 +544,7 @@ export interface ImportParseResponse {
   rows: ImportPreviewRow[];
   totalRows: number;
   parseErrors: string[];
+  parseWarnings?: string[];
   duplicateOfImportSessionId?: string | null;
   previouslyImportedAt?: string | null;
 }

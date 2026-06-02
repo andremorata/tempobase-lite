@@ -66,6 +66,21 @@ export async function POST(request: NextRequest) {
     const headers = parseCsvLine(headerLine);
     const colMap = buildColumnMap(headers);
 
+    const knownColumns = [
+      "client",
+      "project",
+      "task",
+      "description",
+      "billable",
+      "startdate",
+      "starttime",
+      "enddate",
+      "endtime",
+     ];
+    const unmappedColumns = headers.filter(
+       (h) => !knownColumns.includes(normaliseHeader(h))
+      );
+
     const requiredCols = ["startdate", "starttime", "enddate", "endtime"];
     const missingCols = requiredCols.filter((col) => !colMap.has(col));
 
@@ -75,11 +90,11 @@ export async function POST(request: NextRequest) {
         rows: [],
         totalRows: 0,
         parseErrors: [
-          "Missing required columns: 'Start Date', 'Start Time', 'End Date', 'End Time'. " +
-            "Ensure your time-entry CSV includes these columns before importing.",
-        ],
-      });
-    }
+           "Missing required columns: 'Start Date', 'Start Time', 'End Date', 'End Time'. " +
+             "Ensure your time-entry CSV includes these columns before importing.",
+          ],
+        });
+      }
 
     const previousCompletedImport = await prisma.importSession.findFirst({
       where: {
@@ -238,16 +253,21 @@ export async function POST(request: NextRequest) {
         previewRowsJson: JSON.stringify(rows),
       },
       select: { id: true },
-    });
+     });
+
+    const parseWarnings = unmappedColumns.length > 0
+         ? [`Unrecognized column(s): ${unmappedColumns.map((h) => `'${h}'`).join(", ")}. Expected columns are: Client, Project, Task, Description, Billable, Start Date, Start Time, End Date, End Time.`]
+         : [];
 
     return NextResponse.json({
       importSessionId: importSession.id,
       rows,
       totalRows: rows.length,
       parseErrors,
+      parseWarnings,
       duplicateOfImportSessionId: previousCompletedImport?.id ?? null,
       previouslyImportedAt: previousCompletedImport?.completedAt?.toISOString() ?? null,
-    });
+     });
   } catch (error) {
     console.error("Parse CSV error:", error);
 
