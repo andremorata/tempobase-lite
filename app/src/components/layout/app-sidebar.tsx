@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
+import { APP_VERSION } from "@/lib/app-version";
 
 const trackingItems = [
   { title: "Tracker", href: "/tracker", icon: Clock },
@@ -169,6 +170,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <div className="px-2 pb-1 text-[10px] text-muted-foreground/80">
+          v{APP_VERSION}
+        </div>
         {user && (
           <div className="flex items-center justify-between px-2 py-1">
             <span className="text-xs text-muted-foreground truncate">
