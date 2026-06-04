@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie,
 } from "recharts";
-import { Clock, AlertCircle, ChevronDown, ChevronRight, Calendar } from "lucide-react";
+import { Clock, AlertCircle, ChevronDown, ChevronRight, Calendar, Info } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -165,6 +165,7 @@ interface SharedReportPayload {
   from?: string | null;
   to?: string | null;
   showAmounts?: boolean;
+  roundUp?: boolean;
   data: SharedSummaryData | DetailedData | WeeklyData | null;
 }
 
@@ -693,12 +694,18 @@ export default function SharedReportPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {report && (
-              <div className="flex items-center gap-1.5 rounded-md border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                <span>{fmtPeriod(report.from, report.to)}</span>
-              </div>
-            )}
+             {report && (
+               <div className="flex items-center gap-1.5 rounded-md border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+                 <Calendar className="h-3.5 w-3.5" />
+                 <span>{fmtPeriod(report.from, report.to)}</span>
+               </div>
+             )}
+             {report?.roundUp && (
+               <div className="flex items-center gap-1.5 rounded-md border bg-muted px-3 py-1.5 text-xs text-muted-foreground" title="Durations are rounded up to the nearest 10 minutes">
+                 <Info className="h-3.5 w-3.5" />
+                 <span>Rounded (10 min)</span>
+               </div>
+             )}
             <ThemeToggle />
           </div>
         </div>

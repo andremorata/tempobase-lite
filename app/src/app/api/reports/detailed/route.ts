@@ -10,6 +10,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { roundUpToTenMin } from "@/lib/reports/rounding";
 import { getMemberAccess, applyAccessFilter } from "@/lib/auth/access";
 
 const QuerySchema = z.object({
@@ -24,6 +25,7 @@ const QuerySchema = z.object({
   billable: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(500).default(100),
+  roundUp: z.enum(["true", "false"]).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -139,7 +141,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Calculate billed amounts and map to DetailedEntryRow interface
-    const mappedEntries = entries.map((entry) => {
+    let mappedEntries = entries.map((entry) => {
       const hours = toNumber(entry.durationDecimal);
       const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
       const billedAmount = canViewAmounts && entry.isBillable ? hours * rate : null;
@@ -161,19 +163,34 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const totalHours = mappedEntries.reduce(
+    let totalHours = mappedEntries.reduce(
       (sum, e) => sum + e.durationDecimal,
       0
     );
 
-    const billableHours = mappedEntries
+    let billableHours = mappedEntries
       .filter(e => e.isBillable)
       .reduce((sum, e) => sum + e.durationDecimal, 0);
 
-    const totalBilled = mappedEntries.reduce(
+    let totalBilled = mappedEntries.reduce(
       (sum, e) => sum + (e.billedAmount || 0),
       0
     );
+
+
+     // Apply rounding if requested
+    if (query.roundUp === "true") {
+      mappedEntries = mappedEntries.map((e) => ({
+         ...e,
+        durationDecimal: e.durationDecimal != null && e.durationDecimal > 0 ? roundUpToTenMin(e.durationDecimal) : e.durationDecimal,
+        billedAmount: e.billedAmount != null && e.billedAmount > 0
+            ? Number(((e.billedAmount / e.durationDecimal) * roundUpToTenMin(e.durationDecimal)).toFixed(2))
+            : e.billedAmount,
+        }));
+      totalHours = mappedEntries.reduce((sum, e) => sum + (e.durationDecimal || 0), 0);
+      billableHours = mappedEntries.filter(e => e.isBillable).reduce((sum, e) => sum + (e.durationDecimal || 0), 0);
+      totalBilled = mappedEntries.reduce((sum, e) => sum + (e.billedAmount || 0), 0);
+     }
 
     // Match DetailedReportResponse interface
     return NextResponse.json({

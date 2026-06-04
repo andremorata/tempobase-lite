@@ -12,6 +12,7 @@ import { toNumber } from "@/lib/db/decimal";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { getMemberAccess, applyAccessFilter } from "@/lib/auth/access";
 import { toSummaryReportGroupBy } from "@/lib/reports/group-by";
+import { roundUpToTenMin } from "@/lib/reports/rounding";
 
 const summaryGroupBySchema = z.enum(["Project", "Client", "Task", "project", "client", "task"]);
 
@@ -33,8 +34,10 @@ const QuerySchema = z.object({
   taskId: z.string().uuid().optional(),
   tagId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
+  description: z.string().optional(),
   billable: z.enum(["true", "false"]).optional(),
   groupBy: summaryGroupBySchema.default("Project"),
+  roundUp: z.enum(["true", "false"]).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -96,6 +99,13 @@ export async function GET(request: NextRequest) {
       where.isBillable = true;
     } else if (query.billable === "false") {
       where.isBillable = false;
+    }
+
+    if (query.description) {
+      where.description = {
+        contains: query.description,
+        mode: "insensitive",
+      };
     }
 
     // Fetch entries based on group by
@@ -184,7 +194,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const summary = Array.from(groups.values())
+    let summary = Array.from(groups.values())
       .map((g) => ({
         groupId: g.groupId,
         groupName: g.groupName,
@@ -196,7 +206,7 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    const totals = summary.reduce(
+    let totals = summary.reduce(
       (acc, g) => ({
         totalHours: acc.totalHours + g.totalHours,
         billableHours: acc.billableHours + g.billableHours,
@@ -205,6 +215,28 @@ export async function GET(request: NextRequest) {
       }),
       { totalHours: 0, billableHours: 0, totalBilledAmount: 0, entryCount: 0 }
     );
+
+
+    // Apply rounding if requested
+    if (query.roundUp === "true") {
+      summary = summary.map((g) => ({
+        ...g,
+        totalHours: g.totalHours > 0 ? roundUpToTenMin(g.totalHours) : 0,
+        billableHours: g.billableHours > 0 ? roundUpToTenMin(g.billableHours) : 0,
+        billedAmount: g.billedAmount != null && g.totalHours > 0
+           ? Number(((g.billedAmount / g.totalHours) * roundUpToTenMin(g.totalHours)).toFixed(2))
+           : g.billedAmount,
+       }));
+      totals = summary.reduce(
+         (acc, g) => ({
+          totalHours: acc.totalHours + g.totalHours,
+          billableHours: acc.billableHours + g.billableHours,
+          totalBilledAmount: acc.totalBilledAmount + (g.billedAmount ?? 0),
+          entryCount: acc.entryCount + g.entryCount,
+         }),
+         { totalHours: 0, billableHours: 0, totalBilledAmount: 0, entryCount: 0 }
+       );
+    }
 
     // Match SummaryReportResponse interface
     return NextResponse.json({

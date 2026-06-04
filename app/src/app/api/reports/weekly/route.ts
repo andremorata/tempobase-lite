@@ -10,6 +10,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
+import { roundUpToTenMin } from "@/lib/reports/rounding";
 import { getMemberAccess, applyAccessFilter } from "@/lib/auth/access";
 
 const QuerySchema = z.object({
@@ -20,6 +21,7 @@ const QuerySchema = z.object({
   userId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
   billable: z.enum(["true", "false"]).optional(),
+  roundUp: z.enum(["true", "false"]).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -103,7 +105,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Build week rows
-    const weeks = sortedWeeks.map(([mondayStr, weekEntries]) => {
+    let weeks = sortedWeeks.map(([mondayStr, weekEntries]) => {
       const weekStart = new Date(mondayStr);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
@@ -128,7 +130,18 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+    let grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+
+
+     // Apply rounding if requested
+    if (query.roundUp === "true") {
+      weeks = weeks.map((w) => {
+        const roundedDayTotals = w.dayTotals.map((d) => (d > 0 ? roundUpToTenMin(d) : 0));
+        const weekTotal = roundedDayTotals.reduce((s, h) => s + h, 0);
+        return { ...w, dayTotals: roundedDayTotals, weekTotal: Number(weekTotal.toFixed(2)) };
+       });
+      grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+      }
 
     return NextResponse.json({
       weeks,

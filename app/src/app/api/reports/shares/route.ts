@@ -24,6 +24,7 @@ type SharedReportFilters = {
   description?: string | null;
   groupBy?: ReportGroupByInput | null;
   showAmounts?: boolean | null;
+  roundUp?: boolean | null;
 };
 
 function parseSharedReportFilters(filtersJson: string): Partial<SharedReportFilters> {
@@ -63,6 +64,7 @@ const CreateSharedReportSchema = z.object({
   description: z.string().nullish(),
   groupBy: reportGroupBySchema.nullish(),
   showAmounts: z.boolean().default(false),
+  roundUp: z.boolean().optional(),
   expiresAt: z.string().nullish(),
   overwrite: z.boolean().optional(),
 });
@@ -155,6 +157,7 @@ export async function POST(request: NextRequest) {
       description: validated.description,
       groupBy,
       showAmounts: canViewAmounts ? validated.showAmounts : false,
+      roundUp: validated.roundUp ?? false,
     });
 
     const expiresAt = validated.expiresAt ? new Date(validated.expiresAt) : null;

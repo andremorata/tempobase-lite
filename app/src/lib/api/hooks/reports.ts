@@ -30,6 +30,7 @@ function buildQs(filters: ReportFilters & { groupBy?: SummaryGroupBy; page?: num
     params.set("billable", String(filters.billable));
   if (filters.description) params.set("description", filters.description);
   if (filters.groupBy) params.set("groupBy", filters.groupBy);
+  if (filters.roundUp) params.set("roundUp", "true");
   if (filters.page) params.set("page", String(filters.page));
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
   const qs = params.toString();

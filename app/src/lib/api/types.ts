@@ -184,6 +184,7 @@ export interface ReportFilters {
   tagId?: string | null;
   billable?: boolean | null;
   description?: string | null;
+  roundUp?: boolean | null;
 }
 
 export interface SummaryGroupRow {
@@ -595,6 +596,7 @@ export interface SavedReportDto {
   groupBy: PersistedReportGroupBy;
   preset?: string | null;
   createdAt: string;
+  roundUp?: boolean | null;
   updatedAt: string;
 }
 
@@ -611,6 +613,7 @@ export interface CreateSavedReportRequest {
   description?: string | null;
   groupBy?: PersistedReportGroupBy;
   preset?: string | null;
+  roundUp?: boolean | null;
 }
 
 export interface UpdateSavedReportRequest {
@@ -626,6 +629,7 @@ export interface UpdateSavedReportRequest {
   description?: string | null;
   groupBy?: PersistedReportGroupBy;
   preset?: string | null;
+  roundUp?: boolean | null;
 }
 
 export interface CreateSharedReportRequest {
@@ -642,6 +646,7 @@ export interface CreateSharedReportRequest {
   groupBy?: PersistedReportGroupBy;
   expiresAt?: string | null;
   showAmounts?: boolean;
+  roundUp?: boolean | null;
   /** When true, replace an existing share with the same name instead of failing with 409. */
   overwrite?: boolean;
 }

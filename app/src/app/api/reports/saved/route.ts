@@ -23,6 +23,7 @@ type SavedReportFilters = {
   description?: string | null;
   groupBy?: ReportGroupByInput | null;
   preset?: string | null;
+  roundUp?: boolean | null;
 };
 
 function parseSavedReportFilters(filtersJson: string): Partial<SavedReportFilters> {
@@ -62,6 +63,7 @@ const CreateSavedReportSchema = z.object({
   description: z.string().nullish(),
   groupBy: reportGroupBySchema.nullish(),
   preset: z.string().nullish(),
+  roundUp: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -104,6 +106,7 @@ export async function GET() {
         description: filters.description || null,
         groupBy: toPersistedReportGroupBy(filters.groupBy),
         preset: filters.preset || "custom",
+        roundUp: filters.roundUp ?? null,
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       };
@@ -141,6 +144,7 @@ export async function POST(request: NextRequest) {
       description: validated.description,
       groupBy,
       preset: validated.preset ?? "custom",
+      roundUp: validated.roundUp ?? false,
     });
 
     const report = await prisma.savedReport.create({
@@ -179,6 +183,7 @@ export async function POST(request: NextRequest) {
         description: filters.description || null,
         groupBy: toPersistedReportGroupBy(filters.groupBy),
         preset: filters.preset || "custom",
+        roundUp: filters.roundUp ?? null,
         createdAt: report.createdAt,
         updatedAt: report.updatedAt || report.createdAt,
       },

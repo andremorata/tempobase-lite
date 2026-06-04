@@ -50,6 +50,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ApiError, getApiErrorMessage } from "@/lib/api/client";
 import { toast } from "sonner";
 
+import { roundUpToTenMin } from "@/lib/reports/rounding";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtHours(h: number): string {
@@ -64,10 +65,6 @@ function fmtMoney(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-function roundUpToTenMin(decimalHours: number): number {
-  const minutes = decimalHours * 60;
-  return Math.max(10, Math.ceil(minutes / 10) * 10) / 60;
-}
 
 function showMutationErrorToast(title: string, error: unknown, fallback: string) {
   toast.error(title, {
@@ -531,6 +528,23 @@ function SummaryTab({ filters }: { filters: FilterState }) {
     [grouped]
   );
 
+   // KPI totals: derive from displayEntries when Roundup is active so that
+   // every number on the page — cards, charts, grid — reflects the same values.
+  const roundedTotals = useMemo(() => {
+    if (!roundUp) return summaryData ?? null;
+    const totalHours = displayEntries.reduce((s, e) => s + (e.durationDecimal ?? 0), 0);
+    const billableHours = displayEntries
+       .filter((e) => e.isBillable)
+       .reduce((s, e) => s + (e.durationDecimal ?? 0), 0);
+    const totalBilledAmount = displayEntries.reduce((s, e) => s + (e.billedAmount ?? 0), 0);
+    return {
+      ...summaryData!,
+      totalHours: Number(totalHours.toFixed(2)),
+      billableHours: Number(billableHours.toFixed(2)),
+      totalBilledAmount: summaryData && filters.showAmounts ? Number(totalBilledAmount.toFixed(2)) : null,
+     };
+   }, [displayEntries, roundUp, summaryData, filters.showAmounts]);
+
   const toggleMonth = (ym: string) =>
     setExpandedMonths((prev) => {
       const next = new Set(prev);
@@ -595,20 +609,20 @@ function SummaryTab({ filters }: { filters: FilterState }) {
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums">
-            {summaryData ? fmtHours(summaryData.totalHours) : "—"}
+            {roundedTotals ? fmtHours(roundedTotals.totalHours) : "—"}
           </p>
         </div>
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Billable Hours</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
-            {summaryData ? fmtHours(summaryData.billableHours) : "—"}
+            {roundedTotals ? fmtHours(roundedTotals.billableHours) : "—"}
           </p>
         </div>
         {filters.showAmounts && (
           <div className="rounded-lg border bg-card p-4">
             <p className="text-xs text-muted-foreground">Billed Amount</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-500">
-              {summaryData ? fmtMoney(summaryData.totalBilledAmount) : "—"}
+              {roundedTotals ? fmtMoney(roundedTotals.totalBilledAmount ?? 0) : "—"}
             </p>
           </div>
         )}
@@ -891,10 +905,34 @@ function DetailedTab({ filters }: { filters: FilterState }) {
     pageSize: 50,
   });
 
-  const entries = data?.entries ?? [];
+  const entries = useMemo(() => data?.entries ?? [], [data?.entries]);
+  const roundUp = filters.roundUp;
+
+  const displayEntries = useMemo(
+    () => roundUp ? entries.map((e) => {
+      if (e.durationDecimal == null || e.durationDecimal === 0) return e;
+      const rounded = roundUpToTenMin(e.durationDecimal);
+      return { ...e, durationDecimal: rounded, billedAmount: e.billedAmount != null ? (e.billedAmount / e.durationDecimal) * rounded : null };
+     }) : entries,
+     [entries, roundUp],
+   );
+
+  const totals = useMemo(() => {
+    if (!roundUp) return data!;
+    const totalHours = displayEntries.reduce((s, e) => s + (e.durationDecimal ?? 0), 0);
+    const billableHours = displayEntries.filter((e) => e.isBillable).reduce((s, e) => s + (e.durationDecimal ?? 0), 0);
+    const totalBilledAmount = displayEntries.reduce((s, e) => s + (e.billedAmount ?? 0), 0);
+    return {
+       ...data!,
+      totalHours: Number(totalHours.toFixed(2)),
+      billableHours: Number(billableHours.toFixed(2)),
+      totalBilledAmount: data && filters.showAmounts ? Number(totalBilledAmount.toFixed(2)) : (data?.totalBilledAmount ?? null),
+     };
+   }, [displayEntries, roundUp, data, filters.showAmounts]);
+
 
   const handleExportCsv = () => {
-    if (!entries.length) return;
+    if (!displayEntries.length) return;
     const header = "Date,Project,Client,Task,Description,Start,End,Hours,Billable,Amount\n";
     const rows = entries
       .map(
@@ -920,28 +958,28 @@ function DetailedTab({ filters }: { filters: FilterState }) {
         <div className="flex gap-3">
           <div className="rounded-lg border bg-card px-4 py-2">
             <span className="text-xs text-muted-foreground">Total </span>
-            <span className="font-bold tabular-nums">{fmtHours(data.totalHours)}</span>
+            <span className="font-bold tabular-nums">{fmtHours(totals.totalHours)}</span>
           </div>
           <div className="rounded-lg border bg-card px-4 py-2">
             <span className="text-xs text-muted-foreground">Billable </span>
-            <span className="font-bold tabular-nums text-emerald-500">{fmtHours(data.billableHours)}</span>
+            <span className="font-bold tabular-nums text-emerald-500">{fmtHours(totals.billableHours)}</span>
           </div>
           <div className="rounded-lg border bg-card px-4 py-2">
             <span className="text-xs text-muted-foreground">Billed </span>
-            <span className="font-bold tabular-nums text-emerald-500">{fmtMoney(data.totalBilledAmount)}</span>
+            <span className="font-bold tabular-nums text-emerald-500">{fmtMoney(totals.totalBilledAmount ?? 0)}</span>
           </div>
           <div className="rounded-lg border bg-card px-4 py-2">
             <span className="text-xs text-muted-foreground">Entries </span>
             <span className="font-bold tabular-nums">{data.totalEntries}</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!entries.length}>
+        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!displayEntries.length}>
           <Download className="mr-1.5 h-3.5 w-3.5" />
           Export CSV
         </Button>
       </div>
 
-      {entries.length === 0 ? (
+      {displayEntries.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed">
           <p className="text-sm text-muted-foreground">No entries for the selected period and filters.</p>
         </div>
@@ -959,7 +997,7 @@ function DetailedTab({ filters }: { filters: FilterState }) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {entries.map((entry) => (
+                {displayEntries.map((entry) => (
                   <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs tabular-nums text-muted-foreground">
                       {entry.entryDate}
@@ -1042,10 +1080,27 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
     billable: filters.billable ?? undefined,
   });
 
+  const roundUp = filters.roundUp;
+
+  const displayWeeks = useMemo(() => {
+    if (!data) return [];
+    return data.weeks.map((w) => {
+      if (!roundUp) return w;
+      const roundedDayTotals = w.dayTotals.map((d) => (d > 0 ? roundUpToTenMin(d) : 0));
+      const weekTotal = roundedDayTotals.reduce((s, h) => s + h, 0);
+      return { ...w, dayTotals: roundedDayTotals, weekTotal: Number(weekTotal.toFixed(2)) };
+    });
+  }, [data, roundUp]);
+
+  const displayGrandTotal = useMemo(() => {
+    if (!roundUp) return data?.grandTotal ?? 0;
+    return Number(displayWeeks.reduce((s, w) => s + w.weekTotal, 0).toFixed(2));
+  }, [displayWeeks, roundUp, data]);
+
   const handleExportCsv = () => {
     if (!data) return;
     const header = `Week,${DAY_LABELS.join(",")},Total\n`;
-    const rows = data.weeks
+    const rows = displayWeeks
       .map(
         (w) =>
           `"${w.weekStart}–${w.weekEnd}",${w.dayTotals.map((d) => d.toFixed(2)).join(",")},${w.weekTotal.toFixed(2)}`
@@ -1063,7 +1118,7 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
   if (isLoading) return <Skeleton className="h-64 w-full rounded-lg" />;
   if (!data) return null;
 
-  const chartData = data.weeks.map((w) => ({
+  const chartData = displayWeeks.map((w) => ({
     week: format(new Date(w.weekStart + "T00:00:00"), "MMM d"),
     hours: Number(w.weekTotal.toFixed(2)),
   }));
@@ -1073,15 +1128,15 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
       <div className="flex items-center justify-between">
         <div className="rounded-lg border bg-card px-4 py-2">
           <span className="text-xs text-muted-foreground">Grand Total </span>
-          <span className="font-bold tabular-nums">{fmtHours(data.grandTotal)}</span>
+          <span className="font-bold tabular-nums">{fmtHours(displayGrandTotal)}</span>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!data.weeks.length}>
+        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!displayWeeks.length}>
           <Download className="mr-1.5 h-3.5 w-3.5" />
           Export CSV
         </Button>
       </div>
 
-      {data.weeks.length === 0 ? (
+      {displayWeeks.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-lg border border-dashed">
           <p className="text-sm text-muted-foreground">No data for the selected period and filters.</p>
         </div>
@@ -1116,7 +1171,7 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {data.weeks.map((week) => (
+                {displayWeeks.map((week) => (
                   <tr key={week.weekStart} className="hover:bg-muted/30 transition-colors">
                     <td className="whitespace-nowrap px-4 py-2.5 text-xs tabular-nums text-muted-foreground">
                       {week.weekStart}
@@ -1138,11 +1193,11 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
                   <td className="px-4 py-2.5 text-xs font-medium">Grand Total</td>
                   {DAY_LABELS.map((_, i) => (
                     <td key={i} className="px-3 py-2.5 text-right text-xs font-medium tabular-nums">
-                      {fmtHours(data.weeks.reduce((sum, w) => sum + (w.dayTotals[i] ?? 0), 0))}
+                      {fmtHours(displayWeeks.reduce((sum, w) => sum + (w.dayTotals[i] ?? 0), 0))}
                     </td>
                   ))}
                   <td className="px-4 py-2.5 text-right font-bold tabular-nums text-emerald-500">
-                    {fmtHours(data.grandTotal)}
+                    {fmtHours(displayGrandTotal)}
                   </td>
                 </tr>
               </tfoot>
@@ -1153,6 +1208,7 @@ function WeeklyTab({ filters }: { filters: FilterState }) {
     </div>
   );
 }
+
 
 // ─── Saved views ──────────────────────────────────────────────────────────────
 
@@ -1322,7 +1378,7 @@ function filtersToApiBody(filters: FilterState, reportType: string) {
     groupBy: "project" as const,
     preset: filters.preset,
     showAmounts: filters.showAmounts,
-    // NOTE: roundUp is intentionally not included — shared reports always show original times
+    roundUp: filters.roundUp,
   };
 }
 
@@ -1339,7 +1395,7 @@ function savedReportToFilters(r: SavedReportDto): FilterState {
     preset,
     descriptionSearch: r.description ?? "",
     showAmounts: false,
-    roundUp: false,
+    roundUp: r.roundUp ?? false,
   };
 }
 

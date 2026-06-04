@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
+import { roundUpToTenMin } from "@/lib/reports/rounding";
 
 type PublicSharedReportFilters = {
   from?: string | null;
@@ -19,6 +20,7 @@ type PublicSharedReportFilters = {
   billable?: boolean | null;
   description?: string | null;
   showAmounts?: boolean | null;
+  roundUp?: boolean | null;
 };
 
 type PublicDetailedReportData = {
@@ -211,7 +213,7 @@ export async function GET(
         take: 500,
       });
 
-      const enrichedEntries = entries.map((entry) => {
+      let enrichedEntries = entries.map((entry) => {
         const hours = toNumber(entry.durationDecimal);
         const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
         const billedAmount = entry.isBillable ? hours * rate : null;
@@ -231,6 +233,17 @@ export async function GET(
           tagNames: entry.tags.map((tt) => tt.tag.name),
         };
       });
+
+      // Apply rounding if requested
+    if (filters.roundUp) {
+      enrichedEntries = enrichedEntries.map((e) => {
+        const rounded = e.durationDecimal > 0 ? roundUpToTenMin(e.durationDecimal) : e.durationDecimal;
+        const scaledBilledAmount = e.billedAmount != null && e.durationDecimal > 0
+           ? Number(((e.billedAmount / e.durationDecimal) * rounded).toFixed(2))
+           : e.billedAmount;
+        return { ...e, durationDecimal: rounded, billedAmount: scaledBilledAmount };
+       });
+    }
 
       const totalHours = enrichedEntries.reduce((sum, e) => sum + e.durationDecimal, 0);
       const billableHours = enrichedEntries.filter(e => e.isBillable).reduce((sum, e) => sum + e.durationDecimal, 0);
@@ -277,7 +290,7 @@ export async function GET(
 
         const sortedWeeks = Array.from(weekMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
-        const weeks = sortedWeeks.map(([mondayStr, weekEntries]) => {
+        let weeks = sortedWeeks.map(([mondayStr, weekEntries]) => {
           const weekStart = new Date(mondayStr);
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekEnd.getDate() + 6);
@@ -300,7 +313,17 @@ export async function GET(
           };
         });
 
-        const grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+        let grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+
+            // Apply rounding if requested
+        if (filters.roundUp) {
+          weeks = weeks.map((w) => ({
+              ...w,
+              dayTotals: w.dayTotals.map((d) => (d > 0 ? roundUpToTenMin(d) : 0)),
+              weekTotal: Number(w.dayTotals.reduce((s, h) => s + (h > 0 ? roundUpToTenMin(h) : 0), 0).toFixed(2)),
+              }));
+          grandTotal = weeks.reduce((sum, w) => sum + w.weekTotal, 0);
+           }
 
         data = {
           weeks,
@@ -326,7 +349,7 @@ export async function GET(
         take: 500,
       });
 
-      const enrichedEntries = entries.map((entry) => {
+      let enrichedEntries = entries.map((entry) => {
         const hours = toNumber(entry.durationDecimal);
         const rate = toNumber(entry.task?.hourlyRate ?? entry.project?.hourlyRate);
         const billedAmount = entry.isBillable && filters.showAmounts ? hours * rate : null;
@@ -345,6 +368,19 @@ export async function GET(
           tagNames: entry.tags.map((tt) => tt.tag.name),
         };
       });
+
+
+      // Apply rounding if requested
+    if (filters.roundUp) {
+      enrichedEntries = enrichedEntries.map((e) => {
+        const rounded = e.durationDecimal > 0 ? roundUpToTenMin(e.durationDecimal) : e.durationDecimal;
+        const scaledBilledAmount = e.billedAmount != null && e.durationDecimal > 0
+           ? Number(((e.billedAmount / e.durationDecimal) * rounded).toFixed(2))
+           : e.billedAmount;
+        return { ...e, durationDecimal: rounded, billedAmount: scaledBilledAmount };
+       });
+    }
+
 
       const totalHours = enrichedEntries.reduce((s, e) => s + e.durationDecimal, 0);
       const billableHours = enrichedEntries.filter((e) => e.isBillable).reduce((s, e) => s + e.durationDecimal, 0);
@@ -368,6 +404,7 @@ export async function GET(
       from: filters.from || null,
       to: filters.to || null,
       showAmounts: filters.showAmounts || false,
+      roundUp: filters.roundUp ?? false,
       data,
     });
   } catch (error) {
