@@ -13,8 +13,11 @@ type PublicSharedReportFilters = {
   from?: string | null;
   to?: string | null;
   projectId?: string | null;
+  clientId?: string | null;
   taskId?: string | null;
+  tagId?: string | null;
   billable?: boolean | null;
+  description?: string | null;
   showAmounts?: boolean | null;
 };
 
@@ -151,8 +154,29 @@ export async function GET(
       where.projectId = filters.projectId;
     }
 
+    if (filters.clientId) {
+      where.project = {
+        clientId: filters.clientId,
+      };
+    }
+
     if (filters.taskId) {
       where.taskId = filters.taskId;
+    }
+
+    if (filters.tagId) {
+      where.tags = {
+        some: {
+          tagId: filters.tagId,
+        },
+      };
+    }
+
+    if (filters.description) {
+      where.description = {
+        contains: filters.description,
+        mode: "insensitive",
+      };
     }
 
     if (filters.billable !== undefined && filters.billable !== null) {

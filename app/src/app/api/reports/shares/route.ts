@@ -64,6 +64,7 @@ const CreateSharedReportSchema = z.object({
   groupBy: reportGroupBySchema.nullish(),
   showAmounts: z.boolean().default(false),
   expiresAt: z.string().nullish(),
+  overwrite: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -142,14 +143,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate URL-safe token (18 bytes = 24 base64url chars)
-    const tokenBytes = randomBytes(18);
-    const token = tokenBytes
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
-
     // Serialize filters to JSON — force showAmounts off if user cannot view amounts
     const filtersJson = JSON.stringify({
       from: validated.from,
@@ -164,26 +157,78 @@ export async function POST(request: NextRequest) {
       showAmounts: canViewAmounts ? validated.showAmounts : false,
     });
 
-    const report = await prisma.sharedReport.create({
-      data: {
-        accountId,
-        createdByUserId: userId,
-        name: validated.name,
-        token,
-        reportType: validated.reportType,
-        filtersJson,
-        expiresAt: validated.expiresAt ? new Date(validated.expiresAt) : null,
-      },
-      select: {
-        id: true,
-        name: true,
-        token: true,
-        reportType: true,
-        filtersJson: true,
-        expiresAt: true,
-        createdAt: true,
-      },
+    const expiresAt = validated.expiresAt ? new Date(validated.expiresAt) : null;
+
+    // A share name must be unique within the account. If one already exists,
+    // require explicit overwrite confirmation instead of silently creating a duplicate.
+    const existing = await prisma.sharedReport.findFirst({
+      where: { accountId, name: validated.name },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
     });
+
+    if (existing && !validated.overwrite) {
+      return NextResponse.json(
+        {
+          error: "A shared report with this name already exists",
+          code: "DUPLICATE_NAME",
+        },
+        { status: 409 }
+      );
+    }
+
+    let report;
+
+    if (existing) {
+      // Overwrite confirmed — replace the existing share's configuration while
+      // preserving its token so any already-distributed links keep working.
+      report = await prisma.sharedReport.update({
+        where: { id: existing.id },
+        data: {
+          reportType: validated.reportType,
+          filtersJson,
+          expiresAt,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          token: true,
+          reportType: true,
+          filtersJson: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      });
+    } else {
+      // Generate URL-safe token (18 bytes = 24 base64url chars)
+      const token = randomBytes(18)
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+
+      report = await prisma.sharedReport.create({
+        data: {
+          accountId,
+          createdByUserId: userId,
+          name: validated.name,
+          token,
+          reportType: validated.reportType,
+          filtersJson,
+          expiresAt,
+        },
+        select: {
+          id: true,
+          name: true,
+          token: true,
+          reportType: true,
+          filtersJson: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      });
+    }
 
     // Parse filters back for response
     const filters = parseSharedReportFilters(report.filtersJson);
@@ -199,7 +244,7 @@ export async function POST(request: NextRequest) {
         expiresAt: report.expiresAt,
         createdAt: report.createdAt,
       },
-      { status: 201 }
+      { status: existing ? 200 : 201 }
     );
   } catch (error) {
     console.error("Create shared report error:", error);

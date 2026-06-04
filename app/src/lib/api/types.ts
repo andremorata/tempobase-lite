@@ -642,4 +642,6 @@ export interface CreateSharedReportRequest {
   groupBy?: PersistedReportGroupBy;
   expiresAt?: string | null;
   showAmounts?: boolean;
+  /** When true, replace an existing share with the same name instead of failing with 409. */
+  overwrite?: boolean;
 }

@@ -46,7 +46,8 @@ import { useClients } from "@/lib/api/hooks/clients";
 import { useProjectTasks } from "@/lib/api/hooks/tasks";
 import { useCurrentUserProfile } from "@/lib/api/hooks/account";
 import { NameInput, SharedReportsControl } from "@/components/reports/shared-reports-control";
-import { getApiErrorMessage } from "@/lib/api/client";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { ApiError, getApiErrorMessage } from "@/lib/api/client";
 import { toast } from "sonner";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1358,6 +1359,8 @@ export default function ReportsPage() {
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [baseFilters, setBaseFilters] = useState<FilterState | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // Name of a share pending overwrite confirmation (set when POST returns 409).
+  const [overwriteShareName, setOverwriteShareName] = useState<string | null>(null);
 
   const { data: sharedReports = [] } = useSharedReports();
   const createShare = useCreateSharedReport();
@@ -1464,29 +1467,41 @@ export default function ReportsPage() {
     try { localStorage.setItem(FILTERS_KEY, JSON.stringify(baseFilters)); } catch { /* ignore */ }
   }, [baseFilters]);
 
-  const handleCreateShare = useCallback((name: string) => {
+  const submitShare = useCallback((name: string, overwrite: boolean) => {
     createShare.mutate(
-      { name, ...filtersToApiBody(filters, getActiveReportType(activeTab)) },
+      { name, overwrite, ...filtersToApiBody(filters, getActiveReportType(activeTab)) },
       {
         onSuccess: async (share) => {
+          setOverwriteShareName(null);
           const url = `${window.location.origin}/shared/${share.token}`;
           setShareUrl(url);
           const copied = navigator.clipboard?.writeText
             ? await navigator.clipboard.writeText(url).then(() => true).catch(() => false)
             : false;
 
-          toast.success("Shared report created.", {
+          toast.success(overwrite ? "Shared report updated." : "Shared report created.", {
             description: copied
               ? `${share.name} was copied to your clipboard.`
               : `${share.name} is ready to copy from the page.`,
           });
         },
         onError: (error) => {
+          // A 409 means a share with this name already exists — ask to overwrite
+          // rather than surfacing it as a hard error.
+          if (error instanceof ApiError && error.status === 409) {
+            setOverwriteShareName(name);
+            return;
+          }
+          setOverwriteShareName(null);
           showMutationErrorToast("Could not create shared report.", error, "Failed to create shared report.");
         },
       },
     );
   }, [activeTab, createShare, filters]);
+
+  const handleCreateShare = useCallback((name: string) => {
+    submitShare(name, false);
+  }, [submitShare]);
 
   const handleCopyShare = useCallback(async (share: SharedReportResponse) => {
     const url = `${window.location.origin}/shared/${share.token}`;
@@ -1575,6 +1590,16 @@ export default function ReportsPage() {
           <WeeklyTab filters={filters} />
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={overwriteShareName !== null}
+        onOpenChange={(open) => { if (!open) setOverwriteShareName(null); }}
+        title="Overwrite shared report?"
+        description={`A shared report named “${overwriteShareName ?? ""}” already exists. Overwriting replaces its filters and report type while keeping the same link.`}
+        confirmLabel="Overwrite"
+        loading={createShare.isPending}
+        onConfirm={() => { if (overwriteShareName) submitShare(overwriteShareName, true); }}
+      />
     </div>
   );
 }
