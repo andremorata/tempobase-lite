@@ -77,3 +77,5 @@ worktrees/
 .codex/
 
 test-results/
+
+extensions/tempobase-chrome/dist/

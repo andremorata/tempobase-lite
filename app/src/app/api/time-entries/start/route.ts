@@ -78,6 +78,12 @@ export async function POST(request: NextRequest) {
             tag: true,
           },
         },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

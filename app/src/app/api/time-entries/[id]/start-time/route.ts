@@ -79,6 +79,12 @@ export async function PATCH(
             tag: true,
           },
         },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

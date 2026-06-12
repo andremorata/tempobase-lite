@@ -9,6 +9,7 @@ import { TimeEntry as PrismaTimeEntry, TimeEntryTag, Tag, ProjectTask } from "@p
 type PrismaTimeEntryWithTags = PrismaTimeEntry & {
   tags: (TimeEntryTag & { tag: Tag })[];
   task?: ProjectTask | null;
+  project?: { id: string; name: string } | null;
 };
 
 /**
@@ -31,6 +32,7 @@ export function mapTimeEntry(entry: PrismaTimeEntryWithTags) {
     isBillable: entry.isBillable,
     isRunning: entry.isRunning,
     tagIds: entry.tags.map((tt) => tt.tagId),
+    projectName: entry.project?.name ?? null,
     taskName: entry.task?.name ?? null,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,

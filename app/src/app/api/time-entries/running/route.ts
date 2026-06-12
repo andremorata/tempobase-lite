@@ -29,6 +29,12 @@ export async function GET() {
           },
         },
         task: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

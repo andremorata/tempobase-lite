@@ -57,6 +57,12 @@ export async function POST() {
             tag: true,
           },
         },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
