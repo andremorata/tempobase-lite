@@ -6,6 +6,7 @@ import RegisterPage from "../page";
 const mockPush = vi.fn();
 const mockRegister = vi.fn();
 const mockRegisterViaInvite = vi.fn();
+const mockApiFetch = vi.fn();
 
 let inviteToken = "";
 
@@ -23,15 +24,25 @@ vi.mock("@/contexts/auth-context", () => ({
   }),
 }));
 
+vi.mock("@/lib/api/client", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/api/client")>();
+  return {
+    ...original,
+    apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+  };
+});
+
 describe("RegisterPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     inviteToken = "";
+    mockApiFetch.mockResolvedValue({ defaultLandingPage: "tracker" });
   });
 
-  it("creates a workspace account and redirects to the dashboard", async () => {
+  it("creates a workspace account and redirects to the user's default landing page", async () => {
     const user = userEvent.setup();
     mockRegister.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue({ defaultLandingPage: "tracker" });
 
     render(<RegisterPage />);
 
@@ -52,13 +63,17 @@ describe("RegisterPage", () => {
       });
     });
     expect(mockRegisterViaInvite).not.toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/users/me");
+    });
+    expect(mockPush).toHaveBeenCalledWith("/tracker");
   });
 
-  it("joins an existing workspace when an invite token is present", async () => {
+  it("joins an existing workspace and redirects to the user's default landing page", async () => {
     const user = userEvent.setup();
     inviteToken = "invite-token-123";
     mockRegisterViaInvite.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue({ defaultLandingPage: "timesheet" });
 
     render(<RegisterPage />);
 
@@ -80,6 +95,9 @@ describe("RegisterPage", () => {
       });
     });
     expect(mockRegister).not.toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/users/me");
+    });
+    expect(mockPush).toHaveBeenCalledWith("/timesheet");
   });
 });

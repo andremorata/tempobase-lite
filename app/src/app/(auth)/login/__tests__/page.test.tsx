@@ -7,9 +7,11 @@ import LoginPage from "../page";
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 const mockLogin = vi.fn();
+const mockApiFetch = vi.fn();
 
 let authUser: { id: string; email: string } | null = null;
 let authIsLoading = false;
+let profileData: { defaultLandingPage: string } | null = null;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
@@ -19,16 +21,33 @@ vi.mock("@/contexts/auth-context", () => ({
   useAuth: () => ({ login: mockLogin, user: authUser, isLoading: authIsLoading }),
 }));
 
+vi.mock("@/lib/api/client", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/api/client")>();
+  return {
+    ...original,
+    apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+  };
+});
+
+vi.mock("@/lib/api/hooks/account", () => ({
+  useCurrentUserProfile: () => ({
+    data: profileData,
+    isLoading: false,
+  }),
+}));
+
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authUser = null;
     authIsLoading = false;
+    profileData = null;
   });
 
-  it("signs in and redirects to the dashboard", async () => {
+  it("signs in and redirects to the user's default landing page", async () => {
     const user = userEvent.setup();
     mockLogin.mockResolvedValue(undefined);
+    mockApiFetch.mockResolvedValue({ defaultLandingPage: "timesheet" });
 
     render(<LoginPage />);
 
@@ -42,12 +61,16 @@ describe("LoginPage", () => {
         password: "Password123",
       });
     });
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    await waitFor(() => {
+      expect(mockApiFetch).toHaveBeenCalledWith("/users/me");
+    });
+    expect(mockPush).toHaveBeenCalledWith("/timesheet");
   });
 
-  it("redirects to dashboard when user is already authenticated", async () => {
+  it("redirects to the user's default landing page when already authenticated", async () => {
     authUser = { id: "user-1", email: "owner@example.com" };
     authIsLoading = false;
+    profileData = { defaultLandingPage: "dashboard" };
 
     render(<LoginPage />);
 

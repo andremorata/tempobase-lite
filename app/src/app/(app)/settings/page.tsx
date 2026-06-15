@@ -87,6 +87,12 @@ const DATE_FORMATS = [
   { value: "mdy", label: "MM/DD/YYYY" },
 ] as const;
 
+const LANDING_PAGES = [
+  { value: "tracker", label: "Tracker" },
+  { value: "dashboard", label: "Dashboard" },
+  { value: "timesheet", label: "Timesheet" },
+] as const;
+
 interface AccountDraft {
   name: string;
   timezone: string;
@@ -99,6 +105,7 @@ interface ProfileDraft {
   lastName: string;
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId: string | null;
+  defaultLandingPage: "dashboard" | "tracker" | "timesheet";
   showAuditMetadata: boolean;
 }
 
@@ -155,6 +162,7 @@ export default function SettingsPage() {
   const lastName = profileDraft?.lastName ?? profile?.lastName ?? "";
   const dateFormat = profileDraft?.dateFormat ?? profile?.dateFormat ?? "system";
   const defaultProjectId = profileDraft?.defaultProjectId ?? profile?.defaultProjectId ?? null;
+  const defaultLandingPage = profileDraft?.defaultLandingPage ?? profile?.defaultLandingPage ?? "tracker";
   const showAuditMetadata = profileDraft?.showAuditMetadata ?? profile?.showAuditMetadata ?? true;
   const activeProjects = (projects ?? []).filter((project) => project.status === "Active");
 
@@ -191,6 +199,7 @@ export default function SettingsPage() {
       lastName: patch.lastName ?? current?.lastName ?? profile?.lastName ?? "",
       dateFormat: patch.dateFormat ?? current?.dateFormat ?? profile?.dateFormat ?? "system",
       defaultProjectId: patch.defaultProjectId ?? current?.defaultProjectId ?? profile?.defaultProjectId ?? null,
+      defaultLandingPage: patch.defaultLandingPage ?? current?.defaultLandingPage ?? profile?.defaultLandingPage ?? "tracker",
       showAuditMetadata: patch.showAuditMetadata ?? current?.showAuditMetadata ?? profile?.showAuditMetadata ?? true,
     }));
   };
@@ -229,6 +238,7 @@ export default function SettingsPage() {
         lastName,
         dateFormat,
         defaultProjectId,
+        defaultLandingPage,
         showAuditMetadata,
       });
       setProfileDraft({
@@ -236,6 +246,7 @@ export default function SettingsPage() {
         lastName: updated.lastName,
         dateFormat: updated.dateFormat,
         defaultProjectId: updated.defaultProjectId ?? null,
+        defaultLandingPage: updated.defaultLandingPage,
         showAuditMetadata: updated.showAuditMetadata,
       });
       updateUser({ firstName: updated.firstName, lastName: updated.lastName });
@@ -567,7 +578,9 @@ export default function SettingsPage() {
                 disabled={isProfileLoading || updateProfile.isPending}
               >
                 <SelectTrigger aria-label="Date format">
-                  <SelectValue placeholder="Select a date format" />
+                  <SelectValue placeholder="Select a date format">
+                    {DATE_FORMATS.find((f) => f.value === dateFormat)?.label ?? "Select a date format"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {DATE_FORMATS.map((item) => (
@@ -587,13 +600,39 @@ export default function SettingsPage() {
                 disabled={isProfileLoading || updateProfile.isPending}
               >
                 <SelectTrigger aria-label="Default project">
-                  <SelectValue placeholder="Select a default project" />
+                  <SelectValue placeholder="Select a default project">
+                    {defaultProjectId
+                      ? activeProjects.find((p) => p.id === defaultProjectId)?.name ?? "Select a default project"
+                      : "No default project"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No default project</SelectItem>
                   {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Default landing page</Label>
+              <Select
+                value={defaultLandingPage}
+                onValueChange={(value) => updateProfileDraft({ defaultLandingPage: value as ProfileDraft["defaultLandingPage"] })}
+                disabled={isProfileLoading || updateProfile.isPending}
+              >
+                <SelectTrigger aria-label="Default landing page">
+                  <SelectValue placeholder="Select a landing page">
+                    {LANDING_PAGES.find((p) => p.value === defaultLandingPage)?.label ?? "Select a landing page"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {LANDING_PAGES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

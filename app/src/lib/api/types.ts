@@ -281,6 +281,7 @@ export interface UserProfile {
   role: string;
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId?: string | null;
+  defaultLandingPage: "dashboard" | "tracker" | "timesheet";
   showAuditMetadata: boolean;
   canViewAmounts: boolean;
 }
@@ -290,6 +291,7 @@ export interface UpdateUserProfileRequest {
   lastName: string;
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId?: string | null;
+  defaultLandingPage: "dashboard" | "tracker" | "timesheet";
   showAuditMetadata: boolean;
 }
 

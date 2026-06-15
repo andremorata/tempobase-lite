@@ -18,7 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, apiFetch } from "@/lib/api/client";
+import { useCurrentUserProfile } from "@/lib/api/hooks/account";
+import type { UserProfile } from "@/lib/api/types";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -31,12 +33,13 @@ export default function LoginPage() {
   const { login, user, isLoading } = useAuth();
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const { data: profile } = useCurrentUserProfile();
 
   useEffect(() => {
-    if (!isLoading && user) {
-      router.replace("/dashboard");
+    if (!isLoading && user && profile) {
+      router.replace(`/${profile.defaultLandingPage ?? "tracker"}`);
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, profile, router]);
 
   const {
     register,
@@ -48,7 +51,8 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await login(values);
-      router.push("/dashboard");
+      const userProfile = await apiFetch<UserProfile>("/users/me");
+      router.push(`/${userProfile.defaultLandingPage ?? "tracker"}`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setServerError("Invalid email or password.");

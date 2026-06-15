@@ -142,7 +142,9 @@ function DraftRow({
             }}
           >
             <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue placeholder="Select project…" />
+              <SelectValue placeholder="Select project…">
+                {projectId ? (projects.find((p) => p.id === projectId)?.name ?? "Select project…") : undefined}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">No project</SelectItem>
@@ -159,7 +161,9 @@ function DraftRow({
               onValueChange={(v) => setTaskId(v || null)}
             >
               <SelectTrigger className="h-8 w-32 text-xs">
-                <SelectValue placeholder="No task" />
+                <SelectValue placeholder="No task">
+                  {taskId ? (activeTasks.find((t) => t.id === taskId)?.name ?? "No task") : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">No task</SelectItem>

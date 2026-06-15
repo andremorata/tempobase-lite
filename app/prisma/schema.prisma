@@ -77,6 +77,7 @@ model User {
   avatarUrl            String?   @map("avatar_url") @db.VarChar(1000)
   dateFormat           String    @default("system") @map("date_format") @db.VarChar(20)
   defaultProjectId     String?   @map("default_project_id") @db.Uuid
+  defaultLandingPage   String    @default("tracker") @map("default_landing_page") @db.VarChar(20)
   showAuditMetadata    Boolean   @default(true) @map("show_audit_metadata")
   canViewAmounts       Boolean   @default(true) @map("can_view_amounts")
 

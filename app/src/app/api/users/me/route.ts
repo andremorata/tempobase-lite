@@ -27,6 +27,7 @@ export async function GET() {
         role: true,
         dateFormat: true,
         defaultProjectId: true,
+        defaultLandingPage: true,
         showAuditMetadata: true,
         canViewAmounts: true,
       },
@@ -56,6 +57,7 @@ const UpdateProfileSchema = z.object({
   lastName: z.string().min(1).max(100),
   dateFormat: z.string().min(1).max(50),
   defaultProjectId: z.string().uuid().nullable().optional(),
+  defaultLandingPage: z.enum(["dashboard", "tracker", "timesheet"]),
   showAuditMetadata: z.boolean(),
 });
 
@@ -74,6 +76,7 @@ export async function PUT(request: NextRequest) {
         lastName: validated.lastName,
         dateFormat: validated.dateFormat,
         defaultProjectId: validated.defaultProjectId === undefined ? undefined : validated.defaultProjectId,
+        defaultLandingPage: validated.defaultLandingPage,
         showAuditMetadata: validated.showAuditMetadata,
         updatedAt: new Date(),
       },
@@ -85,6 +88,7 @@ export async function PUT(request: NextRequest) {
         role: true,
         dateFormat: true,
         defaultProjectId: true,
+        defaultLandingPage: true,
         showAuditMetadata: true,
         canViewAmounts: true,
       },
