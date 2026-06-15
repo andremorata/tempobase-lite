@@ -106,6 +106,7 @@ function seedData() {
     role: currentUser?.role ?? "Owner",
     dateFormat: "system",
     defaultProjectId: "project-1",
+    defaultLandingPage: "tracker",
     showAuditMetadata: true,
     canViewAmounts: true,
     createdAt: "2026-03-23T00:00:00Z",
@@ -297,6 +298,7 @@ describe("SettingsPage", () => {
         lastName: "Admin",
         dateFormat: "dmy",
         defaultProjectId: "project-1",
+        defaultLandingPage: "tracker",
         showAuditMetadata: true,
       });
     });
@@ -305,6 +307,34 @@ describe("SettingsPage", () => {
       firstName: "Avery",
       lastName: "Admin",
     });
+    expect(mockToastSuccess).toHaveBeenCalledWith("Profile updated.");
+  });
+
+  it("includes defaultLandingPage when saving profile", async () => {
+    const user = userEvent.setup();
+    mockUpdateProfile.mockResolvedValue({
+      ...profileData,
+      defaultLandingPage: "dashboard",
+    });
+
+    render(<SettingsPage />);
+
+    const landingPageSelect = screen.getByRole("combobox", { name: /default landing page/i });
+    await user.click(landingPageSelect);
+
+    const dashboardOption = await screen.findByRole("option", { name: /dashboard/i });
+    await user.click(dashboardOption);
+
+    await user.click(screen.getByRole("button", { name: /save profile/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultLandingPage: "dashboard",
+        }),
+      );
+    });
+
     expect(mockToastSuccess).toHaveBeenCalledWith("Profile updated.");
   });
 
