@@ -81,6 +81,18 @@ function fmtMoney(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+/**
+ * Renders an entry description, or a differentiated placeholder when it is
+ * missing. Treats null, empty, and whitespace-only strings as "no description"
+ * so entries saved without a description (e.g. created in the timesheet) still
+ * render visibly instead of as an empty row.
+ */
+function DescriptionText({ value }: { value: string | null | undefined }) {
+  const trimmed = value?.trim();
+  if (trimmed) return <>{trimmed}</>;
+  return <em className="text-muted-foreground/50">No description</em>;
+}
+
 
 function showMutationErrorToast(title: string, error: unknown, fallback: string) {
   toast.error(title, {
@@ -850,9 +862,7 @@ function SummaryTab({
                                   />
                                 )}
                                 <span className="truncate text-foreground">
-                                  {entry.description ?? (
-                                    <em className="text-muted-foreground/50">No description</em>
-                                  )}
+                                  <DescriptionText value={entry.description} />
                                 </span>
                                 {entry.projectName && (
                                   <span className="shrink-0 text-muted-foreground/60">
@@ -1081,7 +1091,9 @@ function DetailedTab({ filters }: { filters: FilterState }) {
                       </div>
                     </td>
                     <td className="max-w-xs px-4 py-2.5 text-muted-foreground">
-                      <span className="block truncate">{entry.description ?? "—"}</span>
+                      <span className="block truncate">
+                        <DescriptionText value={entry.description} />
+                      </span>
                       {entry.tagNames.length > 0 && (
                         <div className="mt-0.5 flex flex-wrap gap-1">
                           {entry.tagNames.map((tag) => (

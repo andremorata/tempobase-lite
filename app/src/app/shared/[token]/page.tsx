@@ -97,6 +97,16 @@ function fmtMoney(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+/**
+ * Renders an entry description, or a differentiated placeholder when it is
+ * missing. Treats null, empty, and whitespace-only strings as "no description".
+ */
+function DescriptionText({ value }: { value: string | null | undefined }) {
+  const trimmed = value?.trim();
+  if (trimmed) return <>{trimmed}</>;
+  return <em className="text-muted-foreground/50">No description</em>;
+}
+
 function fmtPeriod(from?: string | null, to?: string | null): string {
   if (!from && !to) return "All time";
   const f = from ? format(parseISO(from), "MMM d, yyyy") : "…";
@@ -420,7 +430,7 @@ function SummaryView({
                                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.projectColor }} />
                                 )}
                                 <span className="truncate text-foreground max-w-xs">
-                                  {entry.description ?? <em className="text-muted-foreground/50">No description</em>}
+                                  <DescriptionText value={entry.description} />
                                 </span>
                                 {entry.projectName && (
                                   <span className="shrink-0 text-muted-foreground/60">
@@ -567,7 +577,9 @@ function DetailedView({ data, showAmounts }: { data: DetailedData; showAmounts: 
                   </div>
                 </td>
                 <td className="max-w-xs px-4 py-2.5 text-muted-foreground">
-                  <span className="block truncate">{entry.description ?? "—"}</span>
+                  <span className="block truncate">
+                    <DescriptionText value={entry.description} />
+                  </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums">
                   {fmtHours(entry.durationDecimal ?? 0)}

@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         userId,
         projectId: validated.projectId ?? null,
         taskId: validated.taskId ?? null,
-        description: validated.description?.trim() ?? null,
+        description: validated.description?.trim() || null,
         entryDate,
         startTime: now,
         isBillable: validated.isBillable,
