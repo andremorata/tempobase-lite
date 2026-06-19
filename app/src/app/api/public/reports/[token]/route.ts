@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { toNumber } from "@/lib/db/decimal";
 import { roundUpToTenMin } from "@/lib/reports/rounding";
+import { toChartGranularity, type ChartGranularity } from "@/lib/reports/granularity";
 
 type PublicSharedReportFilters = {
   from?: string | null;
@@ -21,6 +22,7 @@ type PublicSharedReportFilters = {
   description?: string | null;
   showAmounts?: boolean | null;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
 };
 
 type PublicDetailedReportData = {
@@ -405,6 +407,7 @@ export async function GET(
       to: filters.to || null,
       showAmounts: filters.showAmounts || false,
       roundUp: filters.roundUp ?? false,
+      chartGranularity: toChartGranularity(filters.chartGranularity),
       data,
     });
   } catch (error) {

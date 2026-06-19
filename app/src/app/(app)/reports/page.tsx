@@ -51,7 +51,23 @@ import { ApiError, getApiErrorMessage } from "@/lib/api/client";
 import { toast } from "sonner";
 
 import { roundUpToTenMin } from "@/lib/reports/rounding";
+import {
+  type ChartGranularity,
+  CHART_GRANULARITIES,
+  DEFAULT_CHART_GRANULARITY,
+  granularityBucketKey,
+  granularityBucketLabel,
+  granularityChartTitle,
+  toChartGranularity,
+} from "@/lib/reports/granularity";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const GRANULARITY_LABELS: Record<ChartGranularity, string> = {
+  day: "Day",
+  week: "Week",
+  month: "Month",
+  year: "Year",
+};
 
 function fmtHours(h: number): string {
   const hrs = Math.floor(h);
@@ -141,6 +157,7 @@ interface FilterState {
   descriptionSearch: string;
   showAmounts: boolean;
   roundUp: boolean;
+  chartGranularity: ChartGranularity;
 }
 
 // ─── Date range picker ────────────────────────────────────────────────────────
@@ -443,7 +460,13 @@ function FilterBar({
 
 // ─── Summary tab ──────────────────────────────────────────────────────────────
 
-function SummaryTab({ filters }: { filters: FilterState }) {
+function SummaryTab({
+  filters,
+  onFiltersChange,
+}: {
+  filters: FilterState;
+  onFiltersChange: (f: FilterState) => void;
+}) {
   // KPI totals
   const { data: summaryData, isLoading: summaryLoading } = useSummaryReport({
     from: filters.from ?? undefined,
@@ -512,7 +535,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
     return new Map([...months.entries()].sort((a, b) => b[0].localeCompare(a[0])));
   }, [displayEntries]);
 
-  // Monthly bar chart data (ascending for left-to-right display)
+  // Donut distribution data — always grouped by month (ascending for display)
   const chartData = useMemo(
     () =>
       [...grouped.entries()]
@@ -527,6 +550,27 @@ function SummaryTab({ filters }: { filters: FilterState }) {
         .reverse(),
     [grouped]
   );
+
+  // Bar chart data — bucketed by the selected granularity (Day/Month/Year),
+  // sorted ascending so the timeline reads left-to-right.
+  const chartGranularity = filters.chartGranularity;
+  const barChartData = useMemo(() => {
+    const buckets = new Map<string, { hours: number; billedAmount: number }>();
+    for (const entry of displayEntries) {
+      const key = granularityBucketKey(entry.entryDate, chartGranularity);
+      const acc = buckets.get(key) ?? { hours: 0, billedAmount: 0 };
+      acc.hours += entry.durationDecimal ?? 0;
+      acc.billedAmount += entry.billedAmount ?? 0;
+      buckets.set(key, acc);
+    }
+    return [...buckets.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, value]) => ({
+        label: granularityBucketLabel(key, chartGranularity),
+        hours: Number(value.hours.toFixed(2)),
+        billedAmount: value.billedAmount,
+      }));
+  }, [displayEntries, chartGranularity]);
 
    // KPI totals: derive from displayEntries when Roundup is active so that
    // every number on the page — cards, charts, grid — reflects the same values.
@@ -648,20 +692,38 @@ function SummaryTab({ filters }: { filters: FilterState }) {
         </div>
       ) : (
         <>
-          {/* Monthly bar chart */}
-          {chartData.length >= 1 && (
+          {/* Hours per period bar chart — granularity selectable */}
+          {barChartData.length >= 1 && (
             <div className="rounded-lg border bg-card p-4">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Hours per Month
-              </p>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {granularityChartTitle(chartGranularity)}
+                </p>
+                <div className="inline-flex rounded-md border border-border p-0.5">
+                  {CHART_GRANULARITIES.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => onFiltersChange({ ...filters, chartGranularity: g })}
+                      className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                        chartGranularity === g
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {GRANULARITY_LABELS[g]}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
+                <BarChart data={barChartData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip
                     formatter={(v, _name, props) => {
-                      const entry = props?.payload as (typeof chartData)[0] | undefined;
+                      const entry = props?.payload as (typeof barChartData)[0] | undefined;
                       const label =
                         showAmounts && entry?.billedAmount != null && entry.billedAmount > 0
                           ? `${fmtHours(Number(v))} (${fmtMoney(entry.billedAmount)})`
@@ -671,7 +733,7 @@ function SummaryTab({ filters }: { filters: FilterState }) {
                     contentStyle={{ fontSize: 12 }}
                   />
                   <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                    {chartData.map((_, i) => (
+                    {barChartData.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -1347,6 +1409,7 @@ function defaultFilters(): FilterState {
     descriptionSearch: "",
     showAmounts: false,
     roundUp: false,
+    chartGranularity: DEFAULT_CHART_GRANULARITY,
   };
 }
 
@@ -1379,6 +1442,7 @@ function filtersToApiBody(filters: FilterState, reportType: string) {
     preset: filters.preset,
     showAmounts: filters.showAmounts,
     roundUp: filters.roundUp,
+    chartGranularity: filters.chartGranularity,
   };
 }
 
@@ -1396,6 +1460,7 @@ function savedReportToFilters(r: SavedReportDto): FilterState {
     descriptionSearch: r.description ?? "",
     showAmounts: false,
     roundUp: r.roundUp ?? false,
+    chartGranularity: toChartGranularity(r.chartGranularity),
   };
 }
 
@@ -1637,7 +1702,7 @@ export default function ReportsPage() {
         <FilterBar filters={filters} onChange={handleFiltersChange} canViewAmounts={canViewAmounts} />
 
         <TabsContent value="summary">
-          <SummaryTab filters={filters} />
+          <SummaryTab filters={filters} onFiltersChange={handleFiltersChange} />
         </TabsContent>
         <TabsContent value="detailed">
           <DetailedTab filters={filters} />

@@ -1,3 +1,5 @@
+import type { ChartGranularity } from "@/lib/reports/granularity";
+
 // ─── Clients ────────────────────────────────────────────────────────────────
 
 export interface Client {
@@ -599,6 +601,7 @@ export interface SavedReportDto {
   preset?: string | null;
   createdAt: string;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
   updatedAt: string;
 }
 
@@ -616,6 +619,7 @@ export interface CreateSavedReportRequest {
   groupBy?: PersistedReportGroupBy;
   preset?: string | null;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
 }
 
 export interface UpdateSavedReportRequest {
@@ -632,6 +636,7 @@ export interface UpdateSavedReportRequest {
   groupBy?: PersistedReportGroupBy;
   preset?: string | null;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
 }
 
 export interface CreateSharedReportRequest {
@@ -649,6 +654,7 @@ export interface CreateSharedReportRequest {
   expiresAt?: string | null;
   showAmounts?: boolean;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
   /** When true, replace an existing share with the same name instead of failing with 409. */
   overwrite?: boolean;
 }

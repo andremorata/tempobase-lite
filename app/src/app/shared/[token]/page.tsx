@@ -11,6 +11,13 @@ import { Clock, AlertCircle, ChevronDown, ChevronRight, Calendar, Info } from "l
 import { useTheme } from "next-themes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  type ChartGranularity,
+  granularityBucketKey,
+  granularityBucketLabel,
+  granularityChartTitle,
+  toChartGranularity,
+} from "@/lib/reports/granularity";
 
 const BASE_URL = "/api";
 
@@ -166,6 +173,7 @@ interface SharedReportPayload {
   to?: string | null;
   showAmounts?: boolean;
   roundUp?: boolean;
+  chartGranularity?: ChartGranularity;
   data: SharedSummaryData | DetailedData | WeeklyData | null;
 }
 
@@ -175,10 +183,12 @@ function SummaryView({
   payload,
   showAmounts,
   chartTheme,
+  chartGranularity,
 }: {
   payload: SharedSummaryData;
   showAmounts: boolean;
   chartTheme: ChartThemeStyles;
+  chartGranularity: ChartGranularity;
 }) {
   const { summary, entries } = payload;
 
@@ -222,7 +232,7 @@ function SummaryView({
       return next;
     });
 
-  // Chart data: months ascending for bar chart
+  // Donut distribution data: months ascending
   const chartData = useMemo(
     () =>
       [...grouped.entries()]
@@ -237,6 +247,25 @@ function SummaryView({
         .reverse(),
     [grouped]
   );
+
+  // Bar chart data: bucketed by the saved granularity, ascending
+  const barChartData = useMemo(() => {
+    const buckets = new Map<string, { hours: number; billedAmount: number }>();
+    for (const entry of entries) {
+      const key = granularityBucketKey(entry.entryDate, chartGranularity);
+      const acc = buckets.get(key) ?? { hours: 0, billedAmount: 0 };
+      acc.hours += entry.durationDecimal ?? 0;
+      acc.billedAmount += entry.billedAmount ?? 0;
+      buckets.set(key, acc);
+    }
+    return [...buckets.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, value]) => ({
+        label: granularityBucketLabel(key, chartGranularity),
+        hours: Number(value.hours.toFixed(2)),
+        billedAmount: value.billedAmount,
+      }));
+  }, [entries, chartGranularity]);
 
   return (
     <div className="space-y-5">
@@ -263,19 +292,19 @@ function SummaryView({
       </div>
 
       {/* Bar chart */}
-      {chartData.length >= 1 && (
+      {barChartData.length >= 1 && (
         <div className="rounded-lg border bg-card p-4">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Hours per Month
+            {granularityChartTitle(chartGranularity)}
           </p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
+            <BarChart data={barChartData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(v, _name, props) => {
-                  const entry = props?.payload as (typeof chartData)[0] | undefined;
+                  const entry = props?.payload as (typeof barChartData)[0] | undefined;
                   const label =
                     showAmounts && entry?.billedAmount != null && entry.billedAmount > 0
                       ? `${fmtHours(Number(v))} (${fmtMoney(entry.billedAmount)})`
@@ -288,7 +317,7 @@ function SummaryView({
                 cursor={chartTheme.tooltipCursor}
               />
               <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                {chartData.map((_, i) => (
+                {barChartData.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
               </Bar>
@@ -733,6 +762,7 @@ export default function SharedReportPage() {
                 payload={report.data as SharedSummaryData}
                 showAmounts={report.showAmounts ?? false}
                 chartTheme={chartTheme}
+                chartGranularity={toChartGranularity(report.chartGranularity)}
               />
             )}
             {report.reportType === "Detailed" && report.data && (

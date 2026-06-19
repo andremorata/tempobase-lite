@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { ReportGroupByInput } from "@/lib/api/types";
 import { requireAuth, getCurrentTenantId } from "@/lib/auth/helpers";
 import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+import type { ChartGranularity } from "@/lib/reports/granularity";
 
 type SavedReportFilters = {
   from?: string | null;
@@ -24,6 +25,7 @@ type SavedReportFilters = {
   groupBy?: ReportGroupByInput | null;
   preset?: string | null;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
 };
 
 function parseSavedReportFilters(filtersJson: string): Partial<SavedReportFilters> {
@@ -64,6 +66,7 @@ const UpdateSavedReportSchema = z.object({
   groupBy: reportGroupBySchema.nullish(),
   preset: z.string().nullish(),
   roundUp: z.boolean().optional(),
+  chartGranularity: z.enum(["day", "week", "month", "year"]).optional(),
 });
 
 export async function PUT(
@@ -104,6 +107,8 @@ export async function PUT(
       description: validated.description,
       groupBy,
       preset: validated.preset ?? "custom",
+      roundUp: validated.roundUp ?? false,
+      chartGranularity: validated.chartGranularity ?? "month",
     });
 
     const report = await prisma.savedReport.update({
@@ -142,6 +147,7 @@ export async function PUT(
       groupBy: toPersistedReportGroupBy(filters.groupBy),
       preset: filters.preset || "custom",
       roundUp: filters.roundUp ?? null,
+      chartGranularity: filters.chartGranularity ?? null,
       createdAt: report.createdAt,
       updatedAt: report.updatedAt || report.createdAt,
     });

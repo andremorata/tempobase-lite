@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { ReportGroupByInput } from "@/lib/api/types";
 import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 import { toPersistedReportGroupBy } from "@/lib/reports/group-by";
+import type { ChartGranularity } from "@/lib/reports/granularity";
 
 type SharedReportFilters = {
   from?: string | null;
@@ -25,6 +26,7 @@ type SharedReportFilters = {
   groupBy?: ReportGroupByInput | null;
   showAmounts?: boolean | null;
   roundUp?: boolean | null;
+  chartGranularity?: ChartGranularity | null;
 };
 
 function parseSharedReportFilters(filtersJson: string): Partial<SharedReportFilters> {
@@ -65,6 +67,7 @@ const CreateSharedReportSchema = z.object({
   groupBy: reportGroupBySchema.nullish(),
   showAmounts: z.boolean().default(false),
   roundUp: z.boolean().optional(),
+  chartGranularity: z.enum(["day", "week", "month", "year"]).optional(),
   expiresAt: z.string().nullish(),
   overwrite: z.boolean().optional(),
 });
@@ -158,6 +161,7 @@ export async function POST(request: NextRequest) {
       groupBy,
       showAmounts: canViewAmounts ? validated.showAmounts : false,
       roundUp: validated.roundUp ?? false,
+      chartGranularity: validated.chartGranularity ?? "month",
     });
 
     const expiresAt = validated.expiresAt ? new Date(validated.expiresAt) : null;
