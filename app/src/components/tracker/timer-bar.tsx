@@ -361,8 +361,9 @@ export function TimerBar() {
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
         <DescriptionAutocomplete
+          className="min-w-0"
           placeholder="What are you working on?"
           value={form.description}
           onChange={(v) => dispatch({ type: "setDescription", value: v })}

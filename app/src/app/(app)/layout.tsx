@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <SidebarProvider>
+      <SidebarProvider autoCollapseBreakpoint={1024}>
         <FaviconUpdater />
         <AppSidebar />
         <SidebarInset>

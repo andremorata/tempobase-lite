@@ -62,13 +62,15 @@ export function AppSidebar() {
   const canViewAudit = user?.role === "Owner" || user?.role === "Admin";
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 px-2 py-2">
+        <div className="flex items-center gap-2.5 px-2 py-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 ring-1 ring-emerald-500/25">
             <Clock className="h-4 w-4 text-emerald-500" />
           </div>
-          <span className="font-semibold tracking-tight">TempoBase</span>
+          <span className="font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+            TempoBase
+          </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -80,6 +82,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
+                    tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
@@ -99,6 +102,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
+                    tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
@@ -118,6 +122,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
+                    tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
@@ -137,6 +142,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
+                    tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
@@ -158,6 +164,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
+                    tooltip={item.title}
                     render={<Link href={item.href} />}
                   >
                     <item.icon className="h-4 w-4" />
@@ -170,12 +177,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="px-2 pb-1 text-[10px] text-muted-foreground/80">
+        <div className="px-2 pb-1 text-[10px] text-muted-foreground/80 group-data-[collapsible=icon]:hidden">
           v{APP_VERSION}
         </div>
         {user && (
-          <div className="flex items-center justify-between px-2 py-1">
-            <span className="text-xs text-muted-foreground truncate">
+          <div className="flex items-center justify-between px-2 py-1 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+            <span className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
               {user.firstName} {user.lastName}
             </span>
             <Button

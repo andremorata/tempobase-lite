@@ -89,12 +89,12 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("registered user can sign in and reach the dashboard", async ({ page, request }, testInfo) => {
+  test("registered user can sign in and reach the workspace", async ({ page, request }, testInfo) => {
     const user = await createUserViaApi(request, testInfo);
 
     await signIn(page, user.email, user.password);
 
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/tracker/, { timeout: 15000 });
     await expect(page.getByText(user.fullName)).toBeVisible();
   });
 
@@ -118,7 +118,7 @@ test.describe("Authentication", () => {
     await page.getByLabel(/workspace name/i).fill(workspaceName);
     await page.getByRole("button", { name: /create workspace/i }).click();
 
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/tracker/);
     await expect(page.getByText("Playwright Owner")).toBeVisible();
   });
 
@@ -126,7 +126,7 @@ test.describe("Authentication", () => {
     const user = await createUserViaApi(request, testInfo);
 
     await signIn(page, user.email, user.password);
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/tracker/);
 
     await page.locator('button[title="Sign out"]').click();
 

@@ -57,6 +57,7 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  autoCollapseBreakpoint,
   className,
   style,
   children,
@@ -65,6 +66,10 @@ function SidebarProvider({
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  // When set, the desktop sidebar auto-collapses to the icon rail below this
+  // width (in px) and re-expands at/above it. The manual toggle still works;
+  // the rule only re-applies when the window crosses the breakpoint.
+  autoCollapseBreakpoint?: number
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
@@ -92,6 +97,29 @@ function SidebarProvider({
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
+
+  // Auto-collapse to the icon rail below the given breakpoint, re-expanding
+  // at/above it. Applies on mount and on breakpoint crossings. Within a mount a
+  // manual toggle sticks until the window actually crosses the threshold; it is
+  // not persisted across full reloads, where the rail is re-derived from width.
+  // This drives only the desktop `open` state — on mobile the sheet is driven by
+  // openMobile, so this running there is harmless.
+  // setOpen is held in a ref (synced via effect) because its identity changes
+  // on every open change; depending on it directly would re-run this effect and
+  // revert manual toggles.
+  const setOpenRef = React.useRef(setOpen)
+  React.useEffect(() => {
+    setOpenRef.current = setOpen
+  }, [setOpen])
+  React.useEffect(() => {
+    if (!autoCollapseBreakpoint) return
+    const mql = window.matchMedia(`(min-width: ${autoCollapseBreakpoint}px)`)
+    const apply = (e: Pick<MediaQueryListEvent, "matches">) =>
+      setOpenRef.current(e.matches)
+    apply(mql)
+    mql.addEventListener("change", apply)
+    return () => mql.removeEventListener("change", apply)
+  }, [autoCollapseBreakpoint])
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
