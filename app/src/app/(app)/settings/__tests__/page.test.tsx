@@ -55,6 +55,7 @@ let profileData: {
   role: Role;
   dateFormat: "system" | "ymd" | "dmy" | "mdy";
   defaultProjectId?: string | null;
+  defaultLandingPage: "dashboard" | "tracker" | "timesheet";
   showAuditMetadata: boolean;
   canViewAmounts: boolean;
   createdAt: string;
