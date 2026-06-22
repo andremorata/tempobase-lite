@@ -99,8 +99,11 @@ function SidebarProvider({
   }, [isMobile, setOpen, setOpenMobile])
 
   // Auto-collapse to the icon rail below the given breakpoint, re-expanding
-  // at/above it. Applies once on mount and then only on breakpoint crossings,
-  // so a manual toggle sticks until the window actually crosses the threshold.
+  // at/above it. Applies on mount and on breakpoint crossings. Within a mount a
+  // manual toggle sticks until the window actually crosses the threshold; it is
+  // not persisted across full reloads, where the rail is re-derived from width.
+  // This drives only the desktop `open` state — on mobile the sheet is driven by
+  // openMobile, so this running there is harmless.
   // setOpen is held in a ref (synced via effect) because its identity changes
   // on every open change; depending on it directly would re-run this effect and
   // revert manual toggles.
