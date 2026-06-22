@@ -20,7 +20,8 @@ export async function signIn(page: Page, credentials: Credentials) {
   await page.getByLabel(/email/i).fill(credentials.email);
   await page.getByLabel(/password/i).fill(credentials.password);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  // Users land on their configured default landing page (schema default: tracker).
+  await expect(page).toHaveURL(/\/tracker/, { timeout: 15_000 });
 }
 
 export async function signInAsOwner(page: Page) {
