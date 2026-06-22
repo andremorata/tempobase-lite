@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Copy, Pencil, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -217,6 +218,61 @@ function secondsToDisplay(s: number): string {
   return `${h}:${String(m).padStart(2, "0")}`;
 }
 
+// ─── Description (truncate + click-to-reveal) ────────────────────────────────
+
+/**
+ * Renders a time-entry description clipped to one line with an ellipsis. When
+ * the text is actually truncated, the line becomes clickable and opens a
+ * popover with the full content; short descriptions stay plain, non-interactive
+ * text. The measuring <p> is always mounted so truncation is re-evaluated on
+ * resize.
+ */
+function EntryDescription({ text }: { text: string }) {
+  const [truncated, setTruncated] = useState(false);
+  const roRef = useRef<ResizeObserver | null>(null);
+
+  // Callback ref so the observer re-attaches whenever the rendered element
+  // swaps between the plain <p> and the interactive <button>. Both carry the
+  // same `truncate` styling, so the measurement stays consistent across the
+  // swap and on resize — no flip-flopping.
+  const measure = useCallback((el: HTMLElement | null) => {
+    roRef.current?.disconnect();
+    if (!el) return;
+    const check = () => setTruncated(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    roRef.current = ro;
+  }, []);
+
+  if (!truncated) {
+    return (
+      <p ref={measure} className="truncate text-sm">
+        {text}
+      </p>
+    );
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        ref={measure}
+        title="Click to read the full description"
+        className="block w-full cursor-pointer truncate border-0 bg-transparent p-0 text-left text-sm font-normal hover:underline"
+      >
+        {text}
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="bottom"
+        className="max-h-60 w-80 max-w-[90vw] overflow-y-auto"
+      >
+        <p className="text-sm break-words whitespace-pre-wrap">{text}</p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function TimeEntryList() {
@@ -415,13 +471,15 @@ export function TimeEntryList() {
                       {/* Line 1 (mobile): description + tags + project badge + billable */}
                       <div className="flex items-center gap-2 sm:contents">
                         <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm">
-                            {entry.description || (
+                          {entry.description ? (
+                            <EntryDescription text={entry.description} />
+                          ) : (
+                            <p className="truncate text-sm">
                               <span className="text-muted-foreground italic">
                                 (no description)
                               </span>
-                            )}
-                          </p>
+                            </p>
+                          )}
                           {entry.taskName && (
                             <p className="text-xs text-muted-foreground truncate">{entry.taskName}</p>
                           )}

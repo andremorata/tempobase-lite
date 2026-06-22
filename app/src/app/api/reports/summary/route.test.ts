@@ -40,7 +40,9 @@ describe("Summary report route", () => {
   beforeEach(() => {
     mockedPrisma.timeEntry.findMany.mockReset();
     mockedPrisma.user.findUnique.mockReset();
-    mockedPrisma.user.findUnique.mockResolvedValue({ canViewAmounts: true });
+    mockedPrisma.user.findUnique.mockResolvedValue({
+      canViewAmounts: true,
+    } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
     mockedPrisma.timeEntry.findMany.mockResolvedValue([]);
   });
 
@@ -52,8 +54,8 @@ describe("Summary report route", () => {
     await GET(request);
 
     expect(mockedPrisma.timeEntry.findMany).toHaveBeenCalled();
-    const callArg = mockedPrisma.timeEntry.findMany.mock.calls[0][0];
+    const callArg = mockedPrisma.timeEntry.findMany.mock.calls[0]![0]!;
     expect(callArg.where).toBeDefined();
-    expect(callArg.where.description).toEqual({ contains: "review", mode: "insensitive" });
+    expect(callArg.where!.description).toEqual({ contains: "review", mode: "insensitive" });
   });
 });
