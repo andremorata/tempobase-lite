@@ -136,7 +136,7 @@ export function StaleTimerDialog({ entry, onResolved }: StaleTimerDialogProps) {
             disabled={pending}
             className="text-muted-foreground hover:text-destructive"
           >
-            Discard entry
+            Discard timer
           </Button>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={keepRunning} disabled={pending}>

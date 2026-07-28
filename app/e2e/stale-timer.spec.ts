@@ -125,7 +125,7 @@ test.describe("Stale timer recovery", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 10_000 });
-    await dialog.getByRole("button", { name: "Discard entry" }).click();
+    await dialog.getByRole("button", { name: "Discard timer" }).click();
 
     await expect(dialog).toBeHidden({ timeout: 10_000 });
     await expect(page.getByTitle(/start timer/i)).toBeVisible();

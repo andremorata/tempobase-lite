@@ -100,7 +100,7 @@ describe("StaleTimerDialog", () => {
   it("discards the entry via the cancel mutation", () => {
     render(<StaleTimerDialog entry={makeEntry()} onResolved={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Discard entry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard timer" }));
 
     expect(mockCancelMutate).toHaveBeenCalledWith("entry-1", expect.anything());
   });

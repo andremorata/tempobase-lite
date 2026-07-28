@@ -499,7 +499,7 @@ export function TimerBar() {
                 size="icon"
                 onClick={() => setCancelConfirmOpen(true)}
                 disabled={cancelTimer.isPending}
-                title="Cancelar tracking"
+                title="Discard timer"
                 className="text-muted-foreground hover:text-destructive"
               >
                 <X className="h-4 w-4" />
@@ -537,9 +537,9 @@ export function TimerBar() {
       <ConfirmDialog
         open={cancelConfirmOpen}
         onOpenChange={setCancelConfirmOpen}
-        title="Cancelar tracking?"
-        description="O tempo contado será descartado e o lançamento não será salvo."
-        confirmLabel="Cancelar tracking"
+        title="Discard timer?"
+        description="The tracked time will be discarded and no entry will be saved."
+        confirmLabel="Discard timer"
         variant="destructive"
         loading={cancelTimer.isPending}
         onConfirm={() => {
@@ -550,7 +550,7 @@ export function TimerBar() {
               setCancelConfirmOpen(false);
             },
             onError: (err) => {
-              showMutationErrorToast("Não foi possível cancelar o tracking.", err, "Falha ao cancelar o tracking.");
+              showMutationErrorToast("Could not discard timer.", err, "Failed to discard the timer.");
               setCancelConfirmOpen(false);
             },
           });
