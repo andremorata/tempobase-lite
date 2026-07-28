@@ -43,6 +43,14 @@
 3. Only one running timer is allowed per user.
 4. User stops the timer and duration is finalized.
 
+### Stale timer recovery
+
+1. While the tracker is open, polling `GET /api/time-entries/running` records a heartbeat in `time_entries.last_seen_at`.
+2. Closing the window with a timer running triggers the browser's own generic unload warning. It cannot be customized, and it does not fire on crashes, force-quit, or OS shutdown.
+3. On opening the app, a running timer that started on an earlier calendar day (user's local time) prompts for recovery: stop it at the last heartbeat, keep it running, or discard the timer.
+4. Choosing to keep it running suppresses the prompt for that entry only.
+5. `POST /api/time-entries/stop` accepts an optional `endTime` for this flow; it must be after the start time and not in the future.
+
 ### Manual entry
 
 1. User selects a date and provides a time range or duration.

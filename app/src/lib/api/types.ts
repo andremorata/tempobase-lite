@@ -112,6 +112,8 @@ export interface TimeEntry {
   durationDecimal?: number | null;
   isBillable: boolean;
   isRunning: boolean;
+  /** Heartbeat of the last poll that observed this timer running (null before the first poll). */
+  lastSeenAt?: string | null;
   tagIds: string[];
   taskName?: string | null;
   createdAt: string;

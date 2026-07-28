@@ -202,9 +202,8 @@ describe("time-entry audit routes", () => {
     const request = new NextRequest("http://localhost/api/time-entries/stop", {
       method: "POST",
     });
-    void request;
 
-    const response = await stopTimer();
+    const response = await stopTimer(request);
 
     expect(response.status).toBe(200);
     expect(auditMock.createAuditLog).toHaveBeenCalledWith(

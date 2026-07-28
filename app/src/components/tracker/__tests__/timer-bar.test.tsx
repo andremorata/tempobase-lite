@@ -111,7 +111,7 @@ describe("TimerBar", () => {
 
     render(<TimerBar />, { wrapper: makeWrapper() });
 
-    expect(screen.getByTitle("Cancelar tracking")).toBeDefined();
+    expect(screen.getByTitle("Discard timer")).toBeDefined();
     expect(screen.getByTitle("Stop timer (Ctrl+Shift+S)")).toBeDefined();
     expect(screen.queryByTitle("Start timer (Ctrl+Shift+S)")).toBeNull();
     // Elapsed timer is shown in green
@@ -160,8 +160,8 @@ describe("TimerBar", () => {
 
     render(<TimerBar />, { wrapper: makeWrapper() });
 
-    fireEvent.click(screen.getByTitle("Cancelar tracking"));
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar tracking" }));
+    fireEvent.click(screen.getByTitle("Discard timer"));
+    fireEvent.click(screen.getByRole("button", { name: "Discard timer" }));
 
     expect(mockCancelMutate).toHaveBeenCalledOnce();
     expect(mockCancelMutate).toHaveBeenCalledWith(
