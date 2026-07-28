@@ -290,7 +290,9 @@ describe("SettingsPage", () => {
     await user.clear(screen.getByLabelText(/last name/i));
     await user.type(screen.getByLabelText(/last name/i), "Admin");
     await user.click(screen.getByRole("combobox", { name: /date format/i }));
-    await user.click(screen.getByRole("option", { name: "DD/MM/YYYY" }));
+    // The select renders its options into a portal on open, so this must be the retrying query —
+    // the synchronous one races the mount and fails intermittently under load.
+    await user.click(await screen.findByRole("option", { name: "DD/MM/YYYY" }));
     await user.click(screen.getByRole("button", { name: /save profile/i }));
 
     await waitFor(() => {
