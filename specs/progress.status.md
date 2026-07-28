@@ -29,13 +29,12 @@ Latest local checks from the repository root:
 | `pnpm --dir app install --frozen-lockfile` | Passed | No ignored-builds warning after `onlyBuiltDependencies` config. |
 | `pnpm prisma:validate` | Passed | Prisma schema valid. |
 | `pnpm lint` | Passed | Root script delegates to app lint. |
-| `pnpm test` | Passed (flaky) | 133 tests. The Settings page profile-update test fails intermittently (~1 in 5 runs) independent of recent changes. |
-| `pnpm build` | Passed | Against local Docker PostgreSQL. |
-| `pnpm test:e2e` | Passed | 44 tests, stable across three consecutive runs. |
+| `pnpm test` | Passed | The intermittent Settings page date-format failure was a test-side race on the portal-rendered select; fixed. |
+| `pnpm build` | Not rerun in this pass | Runs `prisma migrate deploy`; requires intentional DB/migration context. |
+| `pnpm test:e2e` | Not rerun in this pass | Should be run before release readiness claims. |
 
 ## Known Follow-Ups
 
-- Triage the flaky Settings page unit test (`updates the current user profile and local auth state`).
 - Run a deliberate final readiness gate after the current restructuring settles.
 - Create GitHub Issues for any remaining production-hardening work that should continue beyond this cleanup.
 
