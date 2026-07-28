@@ -113,12 +113,14 @@ export function useAdjustTimerStart() {
   });
 }
 
+/** Stops the running timer at `endTime` when given, otherwise at the current moment. */
 export function useStopTimer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () =>
+    mutationFn: (endTime?: string) =>
       apiFetch<TimeEntry>("/time-entries/stop", {
         method: "POST",
+        body: endTime ? { endTime } : undefined,
       }),
     onSuccess: () => {
       // Synchronously clear the running entry so the counter stops immediately

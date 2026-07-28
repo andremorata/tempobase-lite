@@ -227,6 +227,9 @@ model TimeEntry {
   durationDecimal      Decimal?       @map("duration_decimal") @db.Decimal(18, 4)
   isBillable           Boolean        @default(false) @map("is_billable")
   isRunning            Boolean        @default(false) @map("is_running")
+  // Heartbeat: last time the app was open and polling this running timer.
+  // Used to offer a sane stop time when a timer is found running from a previous day.
+  lastSeenAt           DateTime?      @map("last_seen_at") @db.Timestamptz
   importSessionId      String?        @map("import_session_id") @db.Uuid
 
   // Audit fields

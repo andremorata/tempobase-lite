@@ -16,6 +16,7 @@ This file captures the current operating posture of the repository. It is not th
 - Added root-level pnpm scripts that delegate to `app/`.
 - Replaced scaffold-style agent guidance with TempoBase Lite-specific instructions.
 - Added PWA manifest and app icons for installable app support.
+- Added stale timer recovery: a `time_entries.last_seen_at` heartbeat plus a prompt when a timer is found running from a previous day.
 - Moved local phase issue files into the specs archive.
 - Added GitHub Issue templates for bugs, features, and maintenance work.
 
@@ -28,13 +29,13 @@ Latest local checks from the repository root:
 | `pnpm --dir app install --frozen-lockfile` | Passed | No ignored-builds warning after `onlyBuiltDependencies` config. |
 | `pnpm prisma:validate` | Passed | Prisma schema valid. |
 | `pnpm lint` | Passed | Root script delegates to app lint. |
-| `pnpm test` | Failing | One existing Settings page test cannot find the `DD/MM/YYYY` option. |
-| `pnpm build` | Not rerun in this pass | Runs `prisma migrate deploy`; requires intentional DB/migration context. |
-| `pnpm test:e2e` | Not rerun in this pass | Should be run before release readiness claims. |
+| `pnpm test` | Passed (flaky) | 133 tests. The Settings page profile-update test fails intermittently (~1 in 5 runs) independent of recent changes. |
+| `pnpm build` | Passed | Against local Docker PostgreSQL. |
+| `pnpm test:e2e` | Passed | 44 tests, stable across three consecutive runs. |
 
 ## Known Follow-Ups
 
-- Triage the failing Settings page unit test.
+- Triage the flaky Settings page unit test (`updates the current user profile and local auth state`).
 - Run a deliberate final readiness gate after the current restructuring settles.
 - Create GitHub Issues for any remaining production-hardening work that should continue beyond this cleanup.
 

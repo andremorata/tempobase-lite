@@ -4,19 +4,30 @@
  * POST /api/time-entries/stop
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUser } from "@/lib/auth/helpers";
 import { createAuditLog } from "@/lib/audit/logger";
 import { summarizeTimeEntryAudit, toTimeEntryAuditSnapshot } from "../audit";
 import { mapTimeEntry } from "../mappers";
 
-export async function POST() {
+// `endTime` lets stale-timer recovery close an entry at the last heartbeat instead of now.
+const StopTimerSchema = z.object({
+  endTime: z.string().datetime().optional(),
+});
+
+export async function POST(request: NextRequest) {
   try {
     await requireAuth();
     const accountId = await getCurrentTenantId();
     const currentUser = await getCurrentUser();
     const userId = currentUser.id;
+
+    // The plain "stop now" call sends no body at all, so treat an unparseable body as empty
+    const validated = StopTimerSchema.parse(
+      await request.json().catch(() => ({}))
+    );
 
     // Find the running timer
     const runningTimer = await prisma.timeEntry.findFirst({
@@ -35,17 +46,32 @@ export async function POST() {
       );
     }
 
-    // Calculate duration
+    // Stop at the caller-supplied time when given, otherwise now
     const now = new Date();
+    const endTime = validated.endTime ? new Date(validated.endTime) : now;
     const startTime = new Date(runningTimer.startTime);
-    const durationMs = now.getTime() - startTime.getTime();
+
+    if (endTime > now) {
+      return NextResponse.json(
+        { error: "End time cannot be in the future" },
+        { status: 400 }
+      );
+    }
+    if (endTime <= startTime) {
+      return NextResponse.json(
+        { error: "End time must be after start time" },
+        { status: 400 }
+      );
+    }
+
+    const durationMs = endTime.getTime() - startTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
 
     // Update the entry
     const stoppedEntry = await prisma.timeEntry.update({
       where: { id: runningTimer.id },
       data: {
-        endTime: now,
+        endTime,
         duration: durationMs,
         durationDecimal: Number(durationHours.toFixed(4)),
         isRunning: false,
@@ -82,6 +108,13 @@ export async function POST() {
     return NextResponse.json(mapTimeEntry(stoppedEntry));
   } catch (error) {
     console.error("Stop timer error:", error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.issues },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(
       { error: "Failed to stop timer" },

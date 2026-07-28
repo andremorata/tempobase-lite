@@ -22,6 +22,7 @@ import {
   useCancelTimer,
 } from "@/lib/api/hooks/time-entries";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { StaleTimerDialog } from "@/components/tracker/stale-timer-dialog";
 import { useProjects } from "@/lib/api/hooks/projects";
 import {
   DescriptionAutocomplete,
@@ -343,6 +344,16 @@ export function TimerBar() {
     });
   }, [runningEntry, form, stopTimer, updateEntry, showMutationErrorToast]);
 
+  // Warn before closing the window/tab with a timer running. The browser shows its own generic
+  // dialog here — the text and buttons cannot be customized, and this does not fire on crashes,
+  // OS shutdown or force-quit. StaleTimerDialog is what actually recovers those cases.
+  useEffect(() => {
+    if (!runningEntry) return;
+    const handler = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [runningEntry]);
+
   // Keyboard shortcut: Ctrl+Shift+S to start/stop
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -517,6 +528,11 @@ export function TimerBar() {
           )}
         </div>
       </div>
+
+      <StaleTimerDialog
+        entry={runningEntry}
+        onResolved={() => dispatch({ type: "clear" })}
+      />
 
       <ConfirmDialog
         open={cancelConfirmOpen}
