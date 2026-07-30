@@ -227,9 +227,12 @@ model TimeEntry {
   durationDecimal      Decimal?       @map("duration_decimal") @db.Decimal(18, 4)
   isBillable           Boolean        @default(false) @map("is_billable")
   isRunning            Boolean        @default(false) @map("is_running")
-  // Heartbeat: last time the app was open and polling this running timer.
-  // Used to offer a sane stop time when a timer is found running from a previous day.
+  // Heartbeat: last time the app was open and polling this running timer. Advances on every poll.
   lastSeenAt           DateTime?      @map("last_seen_at") @db.Timestamptz
+  // Where the previous app session ended: the heartbeat right before a long gap in polling.
+  // Only moves when a new gap is detected, so stale-timer recovery keeps pointing at the moment
+  // the timer was forgotten instead of drifting to "now" as the app keeps polling.
+  lastSessionEndAt     DateTime?      @map("last_session_end_at") @db.Timestamptz
   importSessionId      String?        @map("import_session_id") @db.Uuid
 
   // Audit fields

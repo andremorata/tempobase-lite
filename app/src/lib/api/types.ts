@@ -112,8 +112,8 @@ export interface TimeEntry {
   durationDecimal?: number | null;
   isBillable: boolean;
   isRunning: boolean;
-  /** Heartbeat of the last poll that observed this timer running (null before the first poll). */
-  lastSeenAt?: string | null;
+  /** When the app was last open before it went away, for stale-timer recovery (null if never). */
+  lastSessionEndAt?: string | null;
   tagIds: string[];
   taskName?: string | null;
   createdAt: string;

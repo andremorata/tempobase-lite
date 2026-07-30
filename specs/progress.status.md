@@ -16,7 +16,7 @@ This file captures the current operating posture of the repository. It is not th
 - Added root-level pnpm scripts that delegate to `app/`.
 - Replaced scaffold-style agent guidance with TempoBase Lite-specific instructions.
 - Added PWA manifest and app icons for installable app support.
-- Added stale timer recovery: a `time_entries.last_seen_at` heartbeat plus a prompt when a timer is found running from a previous day.
+- Added stale timer recovery: a `time_entries.last_seen_at` heartbeat, a gap-derived `time_entries.last_session_end_at` recovery point, plus a prompt when a timer is found running from a previous day.
 - Moved local phase issue files into the specs archive.
 - Added GitHub Issue templates for bugs, features, and maintenance work.
 
