@@ -73,10 +73,10 @@ export function StaleTimerDialog({ entry, onResolved }: StaleTimerDialogProps) {
 
   const open = startedBeforeToday(entry.startTime, openedAt) && entry.id !== dismissedId;
 
-  // A heartbeat only helps if it is actually after the start — otherwise fall back to stopping now
+  // Only helps if it is actually after the start — otherwise fall back to stopping now
   const lastSeen =
-    entry.lastSeenAt && new Date(entry.lastSeenAt) > new Date(entry.startTime)
-      ? new Date(entry.lastSeenAt)
+    entry.lastSessionEndAt && new Date(entry.lastSessionEndAt) > new Date(entry.startTime)
+      ? new Date(entry.lastSessionEndAt)
       : null;
 
   const start = new Date(entry.startTime);

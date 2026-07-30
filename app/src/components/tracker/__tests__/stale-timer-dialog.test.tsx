@@ -34,7 +34,7 @@ function makeEntry(overrides: Partial<TimeEntry> = {}): TimeEntry {
     durationDecimal: null,
     isBillable: true,
     isRunning: true,
-    lastSeenAt: new Date(2026, 2, 30, 18, 47, 0).toISOString(),
+    lastSessionEndAt: new Date(2026, 2, 30, 18, 47, 0).toISOString(),
     tagIds: [],
     createdAt: new Date(2026, 2, 30, 12, 0, 0).toISOString(),
     updatedAt: null,
@@ -86,11 +86,11 @@ describe("StaleTimerDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Stop at / }));
 
-    expect(mockStopMutate).toHaveBeenCalledWith(entry.lastSeenAt, expect.anything());
+    expect(mockStopMutate).toHaveBeenCalledWith(entry.lastSessionEndAt, expect.anything());
   });
 
   it("falls back to stopping now when there is no heartbeat", () => {
-    render(<StaleTimerDialog entry={makeEntry({ lastSeenAt: null })} onResolved={vi.fn()} />);
+    render(<StaleTimerDialog entry={makeEntry({ lastSessionEndAt: null })} onResolved={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Stop now" }));
 

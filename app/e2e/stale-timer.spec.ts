@@ -62,7 +62,10 @@ async function backdateToYesterday(entryId: string, startHour: number, lastSeenH
     data: {
       startTime,
       entryDate: new Date(startTime.getFullYear(), startTime.getMonth(), startTime.getDate()),
+      // Only the heartbeat is seeded: reopening the tracker is what must turn the gap since it
+      // into the recovery point, and it must stay put as the app keeps polling.
       lastSeenAt: yesterdayAt(lastSeenHour),
+      lastSessionEndAt: null,
     },
   });
 }

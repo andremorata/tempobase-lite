@@ -46,10 +46,11 @@
 ### Stale timer recovery
 
 1. While the tracker is open, polling `GET /api/time-entries/running` records a heartbeat in `time_entries.last_seen_at`.
-2. Closing the window with a timer running triggers the browser's own generic unload warning. It cannot be customized, and it does not fire on crashes, force-quit, or OS shutdown.
-3. On opening the app, a running timer that started on an earlier calendar day (user's local time) prompts for recovery: stop it at the last heartbeat, keep it running, or discard the timer.
-4. Choosing to keep it running suppresses the prompt for that entry only.
-5. `POST /api/time-entries/stop` accepts an optional `endTime` for this flow; it must be after the start time and not in the future.
+2. When that poll finds a heartbeat older than 5 minutes, the app was away in between: the old heartbeat is copied to `time_entries.last_session_end_at`, which is the recovery point. It stays put while the app keeps polling and only moves when a new gap appears, so the moment the timer was forgotten is not overwritten by the current session.
+3. Closing the window with a timer running triggers the browser's own generic unload warning. It cannot be customized, and it does not fire on crashes, force-quit, or OS shutdown.
+4. On opening the app, a running timer that started on an earlier calendar day (user's local time) prompts for recovery: stop it at the end of the previous session, keep it running, or discard the timer.
+5. Choosing to keep it running suppresses the prompt for that entry only.
+6. `POST /api/time-entries/stop` accepts an optional `endTime` for this flow; it must be after the start time and not in the future.
 
 ### Manual entry
 

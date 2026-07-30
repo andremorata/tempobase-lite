@@ -9,6 +9,10 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAuth, getCurrentTenantId, getCurrentUserId } from "@/lib/auth/helpers";
 import { mapTimeEntry } from "../mappers";
 
+// Comfortably above the client's 30s poll interval, which also pauses while the window is
+// unfocused. A false positive here is harmless: the next real gap overwrites it.
+const SESSION_GAP_MS = 5 * 60 * 1000;
+
 export async function GET() {
   try {
     await requireAuth();
@@ -43,19 +47,27 @@ export async function GET() {
       return NextResponse.json(null);
     }
 
-    // NOTE: This GET doubles as the presence heartbeat. The client polls it every 30s while the
-    // app is visible, so `lastSeenAt` tracks "the app was still open at this moment" for free.
-    // The response is mapped BEFORE the write on purpose: callers need the *previous* heartbeat
-    // to know when the app was last open, which is what stale-timer recovery offers as a stop time.
-    const response = mapTimeEntry(runningTimer);
+    // This GET doubles as the presence heartbeat: the client polls it every 30s while the app is
+    // visible, so `lastSeenAt` tracks "the app was still open at this moment" for free. A gap far
+    // longer than that poll means the app was away in between, so the heartbeat we are about to
+    // overwrite is where that session ended — the moment stale-timer recovery offers as a stop
+    // time. It has to be persisted, or the next poll would overwrite the only record of it.
+    const now = new Date();
+    const sessionEnd =
+      runningTimer.lastSeenAt &&
+      now.getTime() - runningTimer.lastSeenAt.getTime() > SESSION_GAP_MS
+        ? runningTimer.lastSeenAt
+        : null;
 
     await prisma.timeEntry.update({
       where: { id: runningTimer.id },
       // Deliberately not touching updatedAt — a heartbeat is not a user edit.
-      data: { lastSeenAt: new Date() },
+      data: { lastSeenAt: now, ...(sessionEnd ? { lastSessionEndAt: sessionEnd } : {}) },
     });
 
-    return NextResponse.json(response);
+    return NextResponse.json(
+      mapTimeEntry(sessionEnd ? { ...runningTimer, lastSessionEndAt: sessionEnd } : runningTimer)
+    );
   } catch (error) {
     console.error("Get running timer error:", error);
     return NextResponse.json(
