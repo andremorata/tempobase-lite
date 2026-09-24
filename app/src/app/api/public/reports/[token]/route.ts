@@ -115,10 +115,12 @@ export async function GET(
         reportType: true,
         filtersJson: true,
         expiresAt: true,
+        account: { select: { isDeleted: true } },
       },
     });
 
-    if (!shared) {
+    // A deleted workspace revokes every link it shared.
+    if (!shared || shared.account.isDeleted) {
       return NextResponse.json(
         { error: "Shared report not found" },
         { status: 404 }
