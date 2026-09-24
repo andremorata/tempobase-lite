@@ -30,6 +30,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {children}
+
+        <p className="text-center text-xs text-muted-foreground">
+          By continuing, you agree to the{" "}
+          <a href="https://pmr.dev/tempobase/termos.html" className="underline underline-offset-4 hover:text-foreground">Terms of Use</a>{" "}
+          and{" "}
+          <a href="https://pmr.dev/tempobase/privacidade.html" className="underline underline-offset-4 hover:text-foreground">Privacy Policy</a>.
+          <br />
+          A <a href="https://pmr.dev" className="underline underline-offset-4 hover:text-foreground">Playmore Software</a> product.
+        </p>
       </div>
     </div>
   );

@@ -604,9 +604,13 @@ export default function Home() {
               TempoBase
             </span>
           </div>
-          <p className="text-[12px] text-white/25">
-            &copy; {new Date().getFullYear()} TempoBase. Built with Next.js, Prisma &amp; PostgreSQL.
-          </p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-white/40">
+            <a href="https://pmr.dev/tempobase/termos.html" className="hover:text-white/70">Terms of Use</a>
+            <a href="https://pmr.dev/tempobase/privacidade.html" className="hover:text-white/70">Privacy</a>
+            <a href="https://pmr.dev" className="hover:text-white/70">
+              &copy; {new Date().getFullYear()} Playmore Software
+            </a>
+          </nav>
         </div>
       </footer>
     </div>
