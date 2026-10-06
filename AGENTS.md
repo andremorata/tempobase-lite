@@ -71,7 +71,7 @@ Rules:
 - Never edit or delete existing applied migrations.
 - Use short lowercase migration names, e.g. `add_invoice_table`.
 - Call out destructive schema changes clearly.
-- Keep the build script order intact: `prisma generate && prisma migrate deploy && next build`.
+- Keep the build script order intact: `prisma generate`, then `prisma migrate deploy`, then `next build`. The migrate step is skipped when `VERCEL_ENV=preview`.
 
 ## Validation Commands
 

@@ -85,7 +85,8 @@ erDiagram
 
 ## 7. Migration Strategy
 
-- **Production and preview deployments** use `prisma migrate deploy`, which runs automatically during the Vercel build step.
+- **Production deployments** use `prisma migrate deploy`, which runs automatically during the Vercel build step.
+- **Preview deployments** skip `prisma migrate deploy` (`VERCEL_ENV=preview`). Preview shares the production database, so a preview build must not apply unmerged migrations. A preview of a PR that changes the schema runs against the old schema until the PR is merged.
 - **Local development** uses `prisma migrate dev --name <description>` to create and apply new migrations.
 - Local throwaway environments may use `prisma db push` for fast bootstrapping, but this must never be the path to production.
 - Migration files live in `app/prisma/migrations/` and must be committed alongside schema changes.
